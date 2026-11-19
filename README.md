@@ -1,36 +1,136 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Password Generator
+
+A lightweight, privacy-focused password generator built as an installable Progressive Web Application (PWA).
+
+Password Generator provides a simple, convenient way to generate cryptographically secure passwords without relying on third-party password-generation websites, advertising, or remote services.
+
+**Your passwords are yours. They never leave your device.**
+
+## Features
+
+### Password Generation
+- Cryptographically secure random password generation using the browser's Web Crypto API.
+- Configurable password length (8–128 characters).
+- Selectable character categories:
+  - Uppercase letters (A–Z)
+  - Lowercase letters (a–z)
+  - Numbers (0–9)
+  - Symbols
+- Option to exclude commonly confused characters.
+- Option to require at least one character from each selected category.
+
+### Convenience
+- One-click password generation.
+- One-click copying to the clipboard.
+- Responsive interface designed for desktop and mobile devices.
+- Automatically restores the most recently used generation settings.
+
+### Privacy & Security
+- Password generation happens entirely on the user's device.
+- Generated passwords are never transmitted to a server.
+- Generated passwords are never persisted by the application.
+- Generation preferences are stored locally using browser local storage.
+- No user accounts or authentication.
+- No advertising, analytics, or tracking.
+- Designed to operate entirely offline after initial installation or caching.
+
+## Technology Stack
+
+The application is built using modern web technologies:
+
+- **Next.js** – Application framework.
+- **React** – User interface.
+- **TypeScript** – Type safety and maintainability.
+- **Web Crypto API** – Cryptographically secure random-number generation.
+- **Clipboard API** – Password copying.
+- **localStorage** – Local persistence of generation preferences.
+- **Progressive Web App (PWA)** – Installation and offline functionality.
+
+No backend, database, or external password-generation service is required.
+
+## Privacy by Design
+
+Privacy is a fundamental design requirement rather than an optional feature.
+
+The application follows several important principles:
+
+1. Passwords are generated locally using the browser's cryptographically secure random-number generator.
+2. Generated passwords are transient and are never saved by the application.
+3. User preferences are stored locally on the device.
+4. No generated passwords or configuration information are transmitted to external services.
+5. No analytics, tracking, or advertising services are included.
+6. Core functionality does not depend on an Internet connection once the application is cached.
+
+The application does not manage clipboard contents or control how the operating system makes copied text available to other applications.
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js (LTS recommended).
+- npm.
+- A modern web browser.
+
+### Installation
+
+Clone the repository:
+
+```bash
+git clone https://github.com/fr0980y/password-generator.git
+```
+
+Navigate into the project directory:
+
+```bash
+cd password-generator
+```
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Start the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Production Build
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Create a production build:
 
-## Learn More
+```bash
+npm run build
+```
 
-To learn more about Next.js, take a look at the following resources:
+Run the production server:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+npm run start
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Project Status
 
-## Deploy on Vercel
+**Status: In Development**
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+This project is being developed as a portfolio demonstration of modern JavaScript application development, privacy-conscious architecture, browser APIs, and offline-first Progressive Web Applications.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The initial release focuses exclusively on password generation.
+
+### Planned Future Enhancements
+
+Potential future additions include:
+
+- Passphrase generator.
+- PIN generator.
+- Random string generator.
+
+These features are outside the scope of the initial release.
+
+## License
+
+To be determined.
