@@ -9,6 +9,7 @@
  * persistence, and application state belong to Phase 8.
  */
 import { ApplicationLayout } from "@/components/layout/application-layout";
+import { AboutPrivacy } from "@/components/common/about-privacy";
 import { PasswordConfiguration } from "@/components/configuration/password-configuration";
 import { CopyButton } from "@/components/password/copy-button";
 import { GenerateButton } from "@/components/password/generate-button";
@@ -55,11 +56,12 @@ function noOpRestoreDefaults(): void {
 /**
  * Renders the main Password Generator page.
  *
- * The page currently reserves the semantic regions required by the UI/UX
- * architecture. Password display, configuration, feedback, and About/Privacy
- * implementations will be inserted into these regions by later phases.
+ * The page composes the password display, Generate and Copy actions,
+ * configuration controls, feedback region, and About/Privacy disclosure.
+ * Phase 8 replaces the temporary no-op callbacks and placeholder password data
+ * with live application state and service integration.
  *
- * @returns The application's single-screen layout and future-content regions.
+ * @returns The application's composed single-screen layout.
  */
 export default function Home() {
   return (
@@ -107,11 +109,9 @@ export default function Home() {
 
         <section
           className={`${styles.region} ${styles.privacyRegion}`}
-          aria-labelledby="privacy-heading"
+          aria-label="About and privacy information"
         >
-          <h2 id="privacy-heading" className={styles.regionHeading}>
-            About / Privacy
-          </h2>
+          <AboutPrivacy />
         </section>
       </div>
     </ApplicationLayout>

@@ -50,8 +50,9 @@
 }
 
 .privacyRegion {
-  min-height: 96px;
-  padding: var(--space-24);
+  /* The native disclosure supplies its own compact surface and spacing. */
+  min-height: 0;
+  padding: 0;
 }
 
 .regionHeading {
@@ -65,8 +66,7 @@
 
 @media (min-width: 768px) {
   .passwordRegion,
-  .configurationRegion,
-  .privacyRegion {
+  .configurationRegion {
     padding: var(--space-32);
   }
 }

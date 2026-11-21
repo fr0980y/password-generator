@@ -70,11 +70,13 @@ body {
   padding: 0;
 }
 
+/* The native disclosure summary participates in the same visible-focus treatment as controls. */
 a,
 button,
 input,
 select,
 textarea,
+summary,
 [tabindex]:not([tabindex="-1"]) {
   outline: none;
 }
@@ -84,6 +86,7 @@ button:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible,
+summary:focus-visible,
 [tabindex]:not([tabindex="-1"]):focus-visible {
   outline: 3px solid var(--color-focus);
   outline-offset: 3px;
