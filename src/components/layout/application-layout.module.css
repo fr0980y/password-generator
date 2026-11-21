@@ -1,0 +1,77 @@
+/**
+ * Styles for the shared application frame.
+ *
+ * This module owns the centered content width, document-height behavior,
+ * header, footer, and small-to-large viewport spacing. Feature components are
+ * responsible for their own controls and visual details.
+ */
+.page {
+  /* The page wrapper owns the viewport height and the application-level visual background. */
+  min-height: 100vh;
+  background: var(--color-background);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+}
+
+.container {
+  width: min(100% - 32px, 720px);
+  min-height: 100vh;
+  margin-inline: auto;
+  padding: var(--space-24) 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  padding: var(--space-24) 0 var(--space-32);
+  text-align: center;
+}
+
+.header h1 {
+  font-size: clamp(2rem, 8vw, 2.75rem);
+  line-height: 1.1;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+}
+
+.header p {
+  margin-top: var(--space-12);
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+
+.main {
+  flex: 1;
+  width: 100%;
+}
+
+.footer {
+  margin-top: var(--space-32);
+  padding-top: var(--space-24);
+  border-top: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.footer p + p {
+  margin-top: var(--space-4);
+}
+
+@media (min-width: 768px) {
+  .container {
+    width: min(100% - 48px, 720px);
+    padding-block: var(--space-32);
+  }
+
+  .header {
+    padding-bottom: var(--space-48);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page {
+    scroll-behavior: auto;
+  }
+}
