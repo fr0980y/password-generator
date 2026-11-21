@@ -9,9 +9,10 @@
  * validates and persists configuration changes, and exposes explicit actions
  * for restoring defaults and generating a password.
  *
- * The hook does not own presentation, clipboard behavior, or a persistence
- * mechanism of its own. Only configuration is passed to the settings service;
- * the displayed password remains in React state and is never persisted.
+ * The hook does not own presentation or implement the Clipboard API itself.
+ * Only configuration is passed to the settings service; the displayed password
+ * remains in React state and is never persisted. Clipboard writes are delegated
+ * to the dedicated clipboard service.
  *
  * Example:
  * ```tsx
@@ -22,15 +23,18 @@
  *   configurationValidation,
  *   password,
  *   isInitialized,
+ *   isCopied,
+ *   copyError,
  *   onConfigurationChange,
  *   onGenerate,
+ *   onCopy,
  * } = usePasswordGenerator();
  * ```
  *
  * Browser-dependent settings access and password generation run after mount,
  * not during server rendering or render-time state initialization.
  */
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   DEFAULT_CONFIGURATION,
 } from "../features/password-generator/password-generator.constants";
@@ -47,10 +51,15 @@ import {
   resetSettings,
   saveSettings,
 } from "../services/settings-storage";
+import { copyToClipboard } from "../services/clipboard";
 
 /** Safe, user-facing message used when secure password generation fails. */
 const GENERATION_ERROR_MESSAGE =
   "Password generation failed. Please try again.";
+
+/** Safe, user-facing fallback shown when the clipboard write fails. */
+const COPY_ERROR_MESSAGE =
+  "Unable to copy automatically. Select the password and copy it manually.";
 
 /** Existing settings-storage warning shown when preferences cannot be saved. */
 const SETTINGS_WARNING_MESSAGE =
@@ -70,6 +79,10 @@ export interface UsePasswordGeneratorResult {
   isInitialized: boolean;
   /** Safe user-facing generation error, or `null` when there is no error. */
   generationError: string | null;
+  /** Whether the most recent current copy attempt succeeded. */
+  isCopied: boolean;
+  /** Safe manual-copy guidance after a failed clipboard write, or `null`. */
+  copyError: string | null;
   /** Preference-persistence warning, or `null` when saving is available. */
   settingsWarning: string | null;
   /**
@@ -83,6 +96,11 @@ export interface UsePasswordGeneratorResult {
   onRestoreDefaults: () => void;
   /** Generates a password for the current configuration on explicit request. */
   onGenerate: () => void;
+  /**
+   * Copies the currently displayed password when initialization is complete.
+   * The returned promise resolves after the clipboard attempt is handled.
+   */
+  onCopy: () => Promise<void>;
 }
 
 /**
@@ -99,6 +117,11 @@ export interface UsePasswordGeneratorResult {
  * successfully; failures produce a generic message that does not expose
  * password data or generator internals.
  *
+ * Copying is also explicit: `onCopy` delegates the current displayed password
+ * to the clipboard service only after initialization and successful initial
+ * generation. Copy failures leave the password unchanged and expose generic
+ * manual-copy guidance.
+ *
  * @returns Current application state and the callbacks needed by the page.
  */
 export function usePasswordGenerator(): UsePasswordGeneratorResult {
@@ -110,18 +133,24 @@ export function usePasswordGenerator(): UsePasswordGeneratorResult {
   const [isInitialized, setIsInitialized] = useState(false);
   const [generationError, setGenerationError] = useState<string | null>(null);
   const [settingsWarning, setSettingsWarning] = useState<string | null>(null);
+  const [isCopied, setIsCopied] = useState(false);
+  const [copyError, setCopyError] = useState<string | null>(null);
+  const isMountedRef = useRef(false);
+  const copyAttemptIdRef = useRef(0);
 
   /**
    * Loads saved settings and attempts initial generation after client mount.
    *
    * The cleanup invalidates this setup's queued task. In development Strict
    * Mode, the replayed setup schedules a new task; an actual unmount leaves
-   * no active task to perform storage access or update state.
+   * no active task to perform storage access or update state. It also invalidates
+   * pending clipboard completions before they can update hook state.
    */
   useEffect(() => {
     // Each setup owns its queued task. Cleanup invalidates that task, while a
     // Strict Mode effect replay runs setup again and schedules a fresh task.
     let effectIsActive = true;
+    isMountedRef.current = true;
 
     // Defer state updates to a microtask so this effect does not synchronously
     // update React state; this is not a timer or an arbitrary initialization delay.
@@ -153,6 +182,8 @@ export function usePasswordGenerator(): UsePasswordGeneratorResult {
     return () => {
       // Prevent a queued task from touching storage or state after unmount.
       effectIsActive = false;
+      isMountedRef.current = false;
+      copyAttemptIdRef.current += 1;
     };
   }, []);
 
@@ -203,12 +234,49 @@ export function usePasswordGenerator(): UsePasswordGeneratorResult {
    */
   const onGenerate = useCallback(() => {
     try {
-      setPassword(generatePassword(configuration));
+      const generatedPassword = generatePassword(configuration);
+      copyAttemptIdRef.current += 1;
+      setIsCopied(false);
+      setCopyError(null);
+      setPassword(generatedPassword);
       setGenerationError(null);
     } catch {
       setGenerationError(GENERATION_ERROR_MESSAGE);
     }
   }, [configuration]);
+
+  /**
+   * Copies only the password currently displayed when the action is invoked.
+   *
+   * A monotonically increasing attempt ID makes the newest attempt authoritative:
+   * older promises cannot replace newer feedback, and successful password
+   * generation or unmount invalidates any copy result still in flight.
+   */
+  const onCopy = useCallback(async () => {
+    if (!isMountedRef.current || !isInitialized || password === null) {
+      return;
+    }
+
+    const attemptId = copyAttemptIdRef.current + 1;
+    copyAttemptIdRef.current = attemptId;
+    setIsCopied(false);
+    setCopyError(null);
+
+    try {
+      await copyToClipboard(password);
+      if (!isMountedRef.current || attemptId !== copyAttemptIdRef.current) {
+        return;
+      }
+
+      setIsCopied(true);
+    } catch {
+      if (!isMountedRef.current || attemptId !== copyAttemptIdRef.current) {
+        return;
+      }
+
+      setCopyError(COPY_ERROR_MESSAGE);
+    }
+  }, [isInitialized, password]);
 
   return {
     configuration,
@@ -216,9 +284,12 @@ export function usePasswordGenerator(): UsePasswordGeneratorResult {
     password,
     isInitialized,
     generationError,
+    isCopied,
+    copyError,
     settingsWarning,
     onConfigurationChange,
     onRestoreDefaults,
     onGenerate,
+    onCopy,
   };
 }
