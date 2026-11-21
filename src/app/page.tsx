@@ -1,5 +1,34 @@
+"use client";
+
+/**
+ * Main Password Generator page.
+ *
+ * This module is the Next.js client boundary for the interactive password
+ * presentation. It composes the shared application layout with password display
+ * and action components and supplies only temporary Phase 7.3 scaffolding.
+ * Live generation, clipboard, and persistence behavior belong to Phase 8.
+ */
 import { ApplicationLayout } from "@/components/layout/application-layout";
+import { CopyButton } from "@/components/password/copy-button";
+import { GenerateButton } from "@/components/password/generate-button";
+import { PasswordDisplay } from "@/components/password/password-display";
 import styles from "./page.module.css";
+
+/*
+ * Temporary development scaffolding for Phase 7.3. This value is not generated,
+ * stored, or used for password behavior. Phase 8 will replace it with live state.
+ */
+const DEVELOPMENT_PLACEHOLDER_PASSWORD = "DevelopmentPlaceholder-7.3";
+
+/**
+ * Temporary no-op callback used until Phase 8 connects explicit user actions
+ * to the application coordination layer.
+ *
+ * @returns Nothing.
+ */
+function noOp(): void {
+  return;
+}
 
 /**
  * Renders the main Password Generator page.
@@ -21,6 +50,10 @@ export default function Home() {
           <h2 id="password-display-heading" className={styles.regionHeading}>
             Your Password
           </h2>
+          <PasswordDisplay password={DEVELOPMENT_PLACEHOLDER_PASSWORD} />
+          <div className={styles.passwordActions}>
+            <CopyButton onCopy={noOp} />
+          </div>
         </section>
 
         <section
@@ -31,6 +64,10 @@ export default function Home() {
             Password Configuration
           </h2>
         </section>
+
+        <div className={styles.generateAction}>
+          <GenerateButton onGenerate={noOp} />
+        </div>
 
         <div
           className={styles.feedbackRegion}

@@ -1,9 +1,9 @@
 /**
- * Styles for the main page's primary password-generator regions.
+ * Page-level placement styles for Phase 7.3 password and action regions.
  *
- * These surfaces define the visual and semantic insertion points for later
- * password display, configuration, feedback, and privacy components. They are
- * intentionally presentation-only and contain no application state.
+ * These rules belong to the Next.js page because they coordinate the section
+ * surfaces supplied by the application layout. Password content and callbacks
+ * remain owned by the password components and the future integration hook.
  */
 .generator {
   /* A single-column flow is the base layout for mobile and remains preferred across larger screens. */
@@ -29,6 +29,16 @@
 .configurationRegion {
   min-height: 256px;
   padding: var(--space-24);
+}
+
+.passwordActions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--space-16);
+}
+
+.generateAction {
+  width: 100%;
 }
 
 .feedbackRegion {

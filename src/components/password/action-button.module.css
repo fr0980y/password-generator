@@ -1,0 +1,65 @@
+/**
+ * Shared visual foundation for the Generate and Copy actions.
+ *
+ * The shared `.button` rule keeps both controls at the approved 44px minimum
+ * target height and provides consistent disabled, active, hover, and
+ * reduced-motion behavior. Variant classes determine primary or secondary
+ * visual emphasis without duplicating interaction behavior.
+ */
+.button {
+  min-height: var(--control-height);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  padding: var(--space-12) var(--space-24);
+  font-weight: 700;
+  line-height: 1.25;
+  cursor: pointer;
+  transition: background-color 120ms ease, border-color 120ms ease,
+    color 120ms ease;
+}
+
+.button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.button:disabled {
+  border-color: var(--color-border);
+  background: #e9eef5;
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+
+.primaryButton {
+  width: 100%;
+  background: var(--color-accent);
+  color: #ffffff;
+}
+
+.primaryButton:hover:not(:disabled) {
+  background: var(--color-accent-hover);
+}
+
+.secondaryButton {
+  min-width: 112px;
+  border-color: var(--color-border-strong);
+  background: var(--color-surface);
+  color: var(--color-accent);
+}
+
+.secondaryButton:hover:not(:disabled) {
+  border-color: var(--color-accent);
+  background: #eff6ff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .button {
+    transition: none;
+  }
+
+  .button:active:not(:disabled) {
+    transform: none;
+  }
+}
