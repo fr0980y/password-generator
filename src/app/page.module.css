@@ -1,9 +1,10 @@
 /**
- * Page-level placement styles for Phase 7.3 password and action regions.
+ * Page-level placement styles for the password, configuration, actions, and
+ * application feedback regions.
  *
- * These rules belong to the Next.js page because they coordinate the section
- * surfaces supplied by the application layout. Password content and callbacks
- * remain owned by the password components and the future integration hook.
+ * These rules belong to the Next.js page because they coordinate section
+ * surfaces supplied by the application layout. Password content remains owned
+ * by the password components, while application state belongs to the hook.
  */
 .generator {
   /* A single-column flow is the base layout for mobile and remains preferred across larger screens. */
@@ -42,11 +43,26 @@
 }
 
 .feedbackRegion {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
   min-height: 0;
 }
 
 .feedbackRegion:empty {
   display: none;
+}
+
+.feedbackMessage {
+  font-size: 0.875rem;
+}
+
+.feedbackError {
+  color: var(--color-error);
+}
+
+.feedbackWarning {
+  color: var(--color-warning);
 }
 
 .privacyRegion {
