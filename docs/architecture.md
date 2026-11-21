@@ -703,6 +703,11 @@ Browser-specific functionality must execute only in appropriate client-side cont
 
 Serwist (`@serwist/next`) will provide service-worker integration.
 
+The production build runs `next build` followed by `serwist build`. The Serwist
+configuration scans Next.js prerendered output, Next.js static assets, public
+assets, and bundled fonts, then writes the generated worker to `out/sw.js` for
+static deployment.
+
 The service worker will be responsible for:
 
 - Precaching required application resources.
@@ -710,7 +715,9 @@ The service worker will be responsible for:
 - Serving cached resources when offline.
 - Managing application resource updates.
 
-Compatibility between Serwist, the selected Next.js version, and static export must be verified during implementation.
+The worker uses precaching without general runtime caching. Outdated precache
+caches are cleaned up when the new worker activates. Navigation fallback is
+limited to the cached application shell.
 
 ### 11.3 Resource Caching
 
@@ -746,6 +753,12 @@ The current application version may continue operating until the user next launc
 Updated resources become active on the next launch or refresh.
 
 The implementation must avoid unexpectedly replacing active application resources while the user is working.
+
+The registration checks for updates on launch. When a waiting worker is found,
+the launching page requests activation; the worker accepts only if that page is
+the sole in-scope window client. It then activates without claiming other clients,
+and only the requesting page reloads. If other tabs remain open, activation is
+deferred until a later launch or refresh after those tabs close.
 
 ## 12. Error Handling Architecture
 

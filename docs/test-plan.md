@@ -438,6 +438,11 @@ End-to-end tests should verify complete workflows in a real browser environment.
 - [ ] Verify the active session is not interrupted.
 - [ ] Verify the new version becomes available after refresh or a subsequent launch.
 - [ ] Verify cached resources are updated correctly.
+- [ ] Keep multiple tabs open in the same browser profile and verify the update
+      waits without taking over those tabs. After the other tabs close, verify
+      it activates only on a subsequent launch or refresh.
+- [ ] Interrupt an update download and verify the current worker and cached
+      application remain usable.
 
 ---
 

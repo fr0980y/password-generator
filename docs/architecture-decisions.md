@@ -314,6 +314,13 @@ Configure the PWA to:
 
 An available update should become active on the next application launch or refresh rather than interrupting the user.
 
+The implementation registers the worker from client-side code and checks for
+updates on launch. A waiting worker accepts a launch-time activation request only
+when the requesting page is the sole in-scope window client. It activates without
+claiming clients, and only the requesting page reloads. With other tabs open,
+activation is deferred until a later launch or refresh after they close so their
+sessions are not taken over.
+
 ### Alternatives Considered
 
 - **Manual service worker implementation:** Provides maximum control but requires more custom implementation and maintenance.

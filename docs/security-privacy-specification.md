@@ -558,7 +558,9 @@ The PWA implementation must preserve the application's security and privacy guar
 - Verify cache invalidation behavior.
 - Avoid unnecessary external network dependencies.
 
-The service worker should not intercept or persist sensitive user-generated content.
+The service worker precaches public application resources only. General runtime
+caching is disabled, and the worker must not intercept or persist sensitive
+user-generated content.
 
 ---
 
