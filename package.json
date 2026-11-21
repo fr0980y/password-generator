@@ -7,7 +7,7 @@
     "build": "next build && serwist build serwist.config.mjs",
     "start": "next start",
     "lint": "eslint",
-    "test": "esbuild src/features/password-generator/password-generator.validation.test.ts --bundle --platform=node --format=cjs --outfile=test-dist/password-generator.validation.test.cjs && node --test test-dist/password-generator.validation.test.cjs"
+    "test": "esbuild src/features/password-generator/password-generator.validation.test.ts src/features/password-generator/password-generator.test.ts --bundle --platform=node --format=cjs --outdir=test-dist --out-extension:.js=.cjs && node --test test-dist/password-generator.validation.test.cjs test-dist/password-generator.test.cjs"
   },
   "dependencies": {
     "next": "16.4.6",
