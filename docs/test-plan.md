@@ -78,7 +78,7 @@ The current test command bundles the test entry points with esbuild and runs the
 | esbuild | Implemented | Bundles and transpiles TypeScript and TSX test entry points |
 | React Testing Library | Implemented | Renders React components and supports interaction tests |
 | jsdom | Implemented | Provides a simulated DOM for React tests running under Node.js |
-| `@playwright/test` | Implemented; Chromium infrastructure smoke test only | Launch Chromium and verify the production static export is served and loads |
+| `@playwright/test` | Implemented; Chromium smoke test and core workflow coverage | Exercise the production export, generation/configuration, clipboard, and preference persistence |
 | Vitest and Jest | Not adopted or installed | Neither is part of the current test infrastructure |
 
 ### 3.1 Implemented and Passing
@@ -93,28 +93,25 @@ On November 22, 2026, `npm test` completed successfully: **92 tests passed, 0 fa
 - `src/app/error.test.tsx`: error fallback and recovery interactions using React Testing Library and jsdom.
 - `src/components/common/about-privacy.test.tsx`: privacy disclosure content using React Testing Library and jsdom.
 
-This passing result describes the current test run, not completion of every scenario in this plan. The tests do not establish real-browser behavior.
+This passing result describes the current Node.js test run, not completion of every scenario in this plan. These Node.js tests do not establish real-browser behavior; see §3.2 for implemented browser coverage.
 
-### 3.2 Playwright Smoke Test and Planned Real-Browser Testing
+### 3.2 Playwright Smoke Test and Implemented Browser Workflows
 
-Playwright is installed and configured to run one infrastructure smoke test against the production export in `out/`. The test confirms Chromium launches, the local static server responds successfully, and the application page loads with its expected title. It does not exercise application behavior or expose generated passwords.
+Playwright is configured to run against the production export in `out/`. The Chromium suite contains the infrastructure smoke test and application workflows in `tests/e2e/application-workflows.spec.ts`. The workflows verify the initial generated password and configuration, browser Web Crypto availability, explicit generation and validation recovery, clipboard writes and timed success feedback, and preferences-only localStorage persistence with a fresh password after reload. The tests use real browser APIs, isolate state using Playwright's per-test browser contexts, and do not log generated passwords.
 
-The following are planned tests, not implemented coverage:
+The following browser checks remain planned:
 
-- Production static-export rendering and hydration.
-- Actual browser Web Crypto availability in a secure context.
-- Clipboard permission and write behavior in a real browser.
-- Persistence across a real page reload.
+- Clipboard permission failure and manual-copy fallback.
 - Service-worker registration, precaching, offline reload, and update behavior.
 - Responsive layout and browser compatibility.
 - Network behavior and security-header/CSP enforcement.
 - PWA installation where supported.
 
-jsdom can simulate DOM interactions and tests can mock browser APIs, but those checks do not verify browser layout, real permissions, service-worker lifecycle, offline behavior, or deployed headers.
+The browser suite does not yet cover all browser layout, permission-failure, service-worker, offline, or deployed-header behavior. jsdom remains useful for fast component tests but does not replace these real-browser checks.
 
 ### 3.3 Planned Coverage Catalog
 
-The unit, component, integration, and end-to-end scenarios below are coverage goals, not a claim that every listed case is implemented. Refer to §3.1 for the current automated-test inventory and passing result. Application workflow and browser-behavior cases remain planned; the smoke test is infrastructure coverage only.
+The unit, component, integration, and end-to-end scenarios below are coverage goals, not a claim that every listed case is implemented. Refer to §3.1 and §3.2 for current automated and browser-test coverage; checked browser cases have corresponding Chromium workflow tests.
 
 ---
 
@@ -345,45 +342,45 @@ These tests should focus on interactions between the custom hook, services, gene
 
 ---
 
-## 7. Planned End-to-End Testing Strategy
+## 7. End-to-End Testing Strategy
 
-Playwright is configured for a production-export infrastructure smoke test. The following application workflows remain planned for later real-browser automation.
+Playwright runs an infrastructure smoke test and core application workflows against the production export. Checked cases below are implemented in Chromium; unchecked cases remain planned.
 
 End-to-end tests should verify complete workflows in a real browser environment.
 
 ### 7.1 First Launch
 
-- [ ] Open the application with no previously saved settings.
-- [ ] Verify default settings are loaded.
-- [ ] Verify a password is generated automatically.
-- [ ] Verify the password has the expected default length.
-- [ ] Verify all default character categories are enabled.
-- [ ] Verify the configuration is valid.
+- [x] Open the application with no previously saved settings.
+- [x] Verify default settings are loaded.
+- [x] Verify a password is generated automatically.
+- [x] Verify the password has the expected default length.
+- [x] Verify all default character categories are enabled.
+- [x] Verify the configuration is valid.
 
 ### 7.2 Subsequent Launch
 
-- [ ] Change configuration settings.
-- [ ] Reload the application.
-- [ ] Verify settings are restored.
-- [ ] Verify a fresh password is generated.
-- [ ] Verify the previous password is not restored.
+- [x] Change configuration settings.
+- [x] Reload the application.
+- [x] Verify settings are restored.
+- [x] Verify a fresh password is generated.
+- [x] Verify the previous password is not restored.
 
 ### 7.3 Generation Workflow
 
-- [ ] Change password length.
-- [ ] Change character categories.
-- [ ] Change ambiguous-character exclusion.
+- [x] Change password length.
+- [x] Change character categories.
+- [x] Change ambiguous-character exclusion.
 - [ ] Change category enforcement.
-- [ ] Verify the displayed password remains unchanged while settings are modified.
-- [ ] Select Generate Password.
-- [ ] Verify the new password satisfies the selected configuration.
+- [x] Verify the displayed password remains unchanged while settings are modified.
+- [x] Select Generate Password.
+- [x] Verify the new password satisfies the selected configuration.
 
 ### 7.4 Clipboard Workflow
 
-- [ ] Generate a password.
-- [ ] Select Copy.
-- [ ] Verify the clipboard contains the displayed password.
-- [ ] Verify success feedback appears.
+- [x] Generate a password.
+- [x] Select Copy.
+- [x] Verify the clipboard contains the displayed password.
+- [x] Verify success feedback appears and clears after its configured interval.
 - [ ] Simulate clipboard failure.
 - [ ] Verify understandable failure feedback and manual-copy instructions.
 
@@ -399,11 +396,11 @@ End-to-end tests should verify complete workflows in a real browser environment.
 
 ### 7.6 Validation Workflow
 
-- [ ] Disable all character categories.
-- [ ] Verify generation is prevented.
-- [ ] Verify the validation message is clear.
-- [ ] Enable a category.
-- [ ] Verify validation recovers.
+- [x] Disable all character categories.
+- [x] Verify generation is prevented.
+- [x] Verify the validation message is clear.
+- [x] Enable categories.
+- [x] Verify validation recovers.
 - [ ] Configure too few characters for the selected categories with enforcement enabled.
 - [ ] Verify generation is prevented.
 - [ ] Increase password length.
@@ -701,10 +698,10 @@ The currently available project commands are:
 - `npm run lint` runs ESLint.
 - `npm run build` builds the static export and service worker.
 - `npx playwright install chromium` installs the Chromium browser used by Playwright.
-- `npm run test:e2e` builds the production export, then runs the Playwright smoke test.
+- `npm run test:e2e` builds the production export, then runs the Playwright smoke and workflow tests.
 - `npm run test:e2e:quick` runs Playwright against an already-built export; run `npm run build` first to avoid using stale output.
 
-There is not yet a complete Playwright workflow suite or a test-coverage script. `npx tsc --noEmit` runs the TypeScript check.
+Playwright covers the workflows checked in §7; remaining browser scenarios are listed as planned. There is no test-coverage script. `npx tsc --noEmit` runs the TypeScript check.
 
 ### Recommended Execution Sequence
 

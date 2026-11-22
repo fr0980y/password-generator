@@ -48,7 +48,7 @@ The architecture emphasizes:
 | Test bundling | esbuild | Bundle and transpile TypeScript and TSX test entry points |
 | Component testing | React Testing Library | React component behavior |
 | Simulated DOM | jsdom | DOM behavior for React tests running under Node.js |
-| End-to-end testing | Playwright (`@playwright/test`) | Chromium infrastructure smoke test against the production static export; application workflows remain planned |
+| End-to-end testing | Playwright (`@playwright/test`) | Chromium smoke and core workflow tests against the production static export |
 
 No backend framework, database, or external state-management library is required.
 
@@ -871,9 +871,9 @@ Browser APIs required by tests are mocked or controlled. jsdom does not verify a
 
 ### 14.4 Playwright
 
-Playwright is configured to run Chromium against the production static export served from `out/`. The infrastructure smoke test confirms Chromium launches, the local server responds, and the exported application page loads with its expected title. `npm run test:e2e` rebuilds the export before running the test; `npm run test:e2e:quick` uses an existing export.
+Playwright runs Chromium against the production static export served from `out/`. The suite includes an infrastructure smoke test and browser workflows for initial generation, configuration and validation, clipboard copying, and preference persistence across reloads. These tests use Chromium's real Web Crypto and Clipboard APIs; they do not mock application services. `npm run test:e2e` rebuilds the export before running the suite; `npm run test:e2e:quick` uses an existing export.
 
-This smoke test does not cover application workflows. Password generation, browser APIs, responsive behavior, offline operation, and service-worker behavior remain planned for a later phase. Install the required browser with `npx playwright install chromium`.
+The browser suite does not yet cover clipboard-denial behavior, service-worker lifecycle, offline operation, responsive layouts, or other browser engines. Install Chromium with `npx playwright install chromium`.
 
 ### 14.5 Security Testing Priorities
 
@@ -998,7 +998,7 @@ Future features should not be introduced until they have defined requirements an
 | Test bundling | esbuild |
 | Component testing | React Testing Library |
 | Simulated DOM | jsdom |
-| Real-browser end-to-end testing | Playwright (Chromium infrastructure smoke test configured; application workflows planned) |
+| Real-browser end-to-end testing | Playwright (Chromium production-export smoke test and core application workflows) |
 
 ## 19. Implementation Considerations
 
