@@ -396,12 +396,18 @@ function StrictModeWrapper({ children }: { children: ReactNode }) {
  * @returns Minimal markup describing the initial, uninitialized hook state.
  */
 function ServerRenderedHookProbe() {
-  const { configuration, isInitialized, password } = usePasswordGenerator();
+  const {
+    configuration,
+    isInitialized,
+    password,
+    webCryptoCapability,
+  } = usePasswordGenerator();
   return (
     <output
       data-length={configuration.length}
       data-initialized={String(isInitialized)}
       data-password-unavailable={String(password === null)}
+      data-web-crypto-capability={webCryptoCapability}
     />
   );
 }
@@ -486,12 +492,14 @@ test("provides defaults before initialization and loads settings before generati
 
   assert.deepEqual(result.current.configuration, DEFAULT_CONFIGURATION);
   assert.equal(result.current.isInitialized, false);
+  assert.equal(result.current.webCryptoCapability, "unknown");
   assert.equal(storage.readCount, 0);
   assert.equal(randomControl.calls, 0);
 
   await waitForInitialization(() => result.current.isInitialized);
 
   assert.deepEqual(result.current.configuration, savedConfiguration);
+  assert.equal(result.current.webCryptoCapability, "available");
   assert.equal(storage.readCount, 1);
   assert.equal(events[0], "settings-read");
   assert.equal(randomControl.calls, 15);
@@ -549,7 +557,195 @@ test("renders the hook without browser APIs or render-time service work", () => 
   assert.ok(html.includes('data-length="20"'));
   assert.ok(html.includes('data-initialized="false"'));
   assert.ok(html.includes('data-password-unavailable="true"'));
+  assert.ok(html.includes('data-web-crypto-capability="unknown"'));
   assert.equal(storage.readCount, 0);
+  assert.equal(randomControl.calls, 0);
+});
+
+test("reports unavailable when Web Crypto is missing", async () => {
+  Object.defineProperty(globalThis, "crypto", {
+    configurable: true,
+    value: undefined,
+  });
+
+  const { result } = testingLibrary.renderHook(() => usePasswordGenerator());
+  assert.equal(result.current.webCryptoCapability, "unknown");
+
+  await waitForInitialization(() => result.current.isInitialized);
+
+  assert.equal(result.current.webCryptoCapability, "unavailable");
+  assert.equal(result.current.password, null);
+  assert.equal(randomControl.calls, 0);
+});
+
+test("reports unavailable when getRandomValues is missing", async () => {
+  Object.defineProperty(globalThis, "crypto", {
+    configurable: true,
+    value: {},
+  });
+
+  const { result } = testingLibrary.renderHook(() => usePasswordGenerator());
+  await waitForInitialization(() => result.current.isInitialized);
+
+  assert.equal(result.current.webCryptoCapability, "unavailable");
+  assert.equal(result.current.password, null);
+  assert.equal(randomControl.calls, 0);
+});
+
+test("reports unavailable when the Web Crypto property is inaccessible", async () => {
+  Object.defineProperty(globalThis, "crypto", {
+    configurable: true,
+    get() {
+      throw new Error("Synthetic capability access failure.");
+    },
+  });
+
+  const { result } = testingLibrary.renderHook(() => usePasswordGenerator());
+  await waitForInitialization(() => result.current.isInitialized);
+
+  assert.equal(result.current.webCryptoCapability, "unavailable");
+  assert.equal(result.current.password, null);
+  assert.equal(randomControl.calls, 0);
+});
+
+test("reports unavailable when getRandomValues is inaccessible", async () => {
+  const inaccessibleCrypto = {};
+  Object.defineProperty(inaccessibleCrypto, "getRandomValues", {
+    configurable: true,
+    get() {
+      throw new Error("Synthetic method access failure.");
+    },
+  });
+  Object.defineProperty(globalThis, "crypto", {
+    configurable: true,
+    value: inaccessibleCrypto,
+  });
+
+  const { result } = testingLibrary.renderHook(() => usePasswordGenerator());
+  await waitForInitialization(() => result.current.isInitialized);
+
+  assert.equal(result.current.webCryptoCapability, "unavailable");
+  assert.equal(result.current.password, null);
+  assert.equal(randomControl.calls, 0);
+});
+
+test("capability retry detects recovery and attempts secure generation", async () => {
+  Object.defineProperty(globalThis, "crypto", {
+    configurable: true,
+    value: undefined,
+  });
+
+  const { result } = testingLibrary.renderHook(() => usePasswordGenerator());
+  await waitForInitialization(() => result.current.isInitialized);
+  assert.equal(result.current.webCryptoCapability, "unavailable");
+
+  Object.defineProperty(globalThis, "crypto", {
+    configurable: true,
+    value: {
+      getRandomValues(array: Uint32Array): Uint32Array {
+        randomControl.calls += 1;
+        array.fill(0);
+        return array;
+      },
+    },
+  });
+
+  testingLibrary.act(() => {
+    result.current.onRetryWebCrypto();
+  });
+
+  assert.equal(result.current.webCryptoCapability, "available");
+  assert.ok(typeof result.current.password === "string");
+  assert.equal(result.current.generationError, null);
+});
+
+test("initial detection succeeds but inaccessible Web Crypto before generation becomes unavailable", async () => {
+  let cryptoAccessCount = 0;
+  const cryptoApi = {
+    getRandomValues(array: Uint32Array): Uint32Array {
+      array.fill(0);
+      return array;
+    },
+  };
+
+  Object.defineProperty(globalThis, "crypto", {
+    configurable: true,
+    get() {
+      cryptoAccessCount += 1;
+      if (cryptoAccessCount === 1) {
+        return cryptoApi;
+      }
+      throw new Error("Synthetic Web Crypto became inaccessible.");
+    },
+  });
+
+  const { result } = testingLibrary.renderHook(() => usePasswordGenerator());
+  await waitForInitialization(() => result.current.isInitialized);
+
+  assert.equal(result.current.webCryptoCapability, "unavailable");
+  assert.equal(result.current.password, null);
+  assert.equal(
+    result.current.generationError,
+    "Password generation failed. Please try again.",
+  );
+});
+
+test("Web Crypto becoming inaccessible after detection preserves the password and becomes unavailable", async () => {
+  const { result } = testingLibrary.renderHook(() => usePasswordGenerator());
+  await waitForInitialization(() => result.current.isInitialized);
+
+  const displayedPassword = result.current.password;
+  assert.equal(result.current.webCryptoCapability, "available");
+
+  let cryptoAccessCount = 0;
+  const cryptoApi = {
+    getRandomValues(array: Uint32Array): Uint32Array {
+      randomControl.calls += 1;
+      array.fill(0);
+      return array;
+    },
+  };
+  Object.defineProperty(globalThis, "crypto", {
+    configurable: true,
+    get() {
+      cryptoAccessCount += 1;
+      if (cryptoAccessCount === 1) {
+        return cryptoApi;
+      }
+      throw new Error("Synthetic Web Crypto became inaccessible.");
+    },
+  });
+
+  testingLibrary.act(() => {
+    result.current.onGenerate();
+  });
+
+  assert.equal(result.current.webCryptoCapability, "unavailable");
+  assert.equal(result.current.password, displayedPassword);
+  assert.equal(
+    result.current.generationError,
+    "Password generation failed. Please try again.",
+  );
+});
+
+test("retry remains unavailable when Web Crypto is still inaccessible", async () => {
+  Object.defineProperty(globalThis, "crypto", {
+    configurable: true,
+    get() {
+      throw new Error("Synthetic Web Crypto is inaccessible.");
+    },
+  });
+
+  const { result } = testingLibrary.renderHook(() => usePasswordGenerator());
+  await waitForInitialization(() => result.current.isInitialized);
+  assert.equal(result.current.webCryptoCapability, "unavailable");
+
+  testingLibrary.act(() => {
+    result.current.onRetryWebCrypto();
+  });
+
+  assert.equal(result.current.webCryptoCapability, "unavailable");
+  assert.equal(result.current.password, null);
   assert.equal(randomControl.calls, 0);
 });
 
@@ -596,6 +792,7 @@ test("initial generation failure leaves no password and exposes a generic error"
   await waitForInitialization(() => result.current.isInitialized);
 
   assert.equal(hookPassword(result.current), null);
+  assert.equal(result.current.webCryptoCapability, "available");
   assert.equal(
     result.current.generationError,
     "Password generation failed. Please try again.",
@@ -694,6 +891,7 @@ test("failed generation preserves the password and does not expose implementatio
   await waitForInitialization(() => result.current.isInitialized);
 
   const displayedPassword = result.current.password;
+  assert.equal(result.current.webCryptoCapability, "available");
   randomControl.fail = true;
   await testingLibrary.act(async () => {
     result.current.onGenerate();
@@ -710,6 +908,11 @@ test("failed generation preserves the password and does not expose implementatio
   assert.ok(
     !result.current.generationError.includes("Synthetic random-source failure"),
     "The underlying random-source error was exposed.",
+  );
+  assert.equal(
+    result.current.webCryptoCapability,
+    "available",
+    "Runtime random-source failure was incorrectly treated as missing Web Crypto.",
   );
 });
 
@@ -1103,4 +1306,52 @@ test("page keeps Copy disabled after initial failure and allows keyboard recover
       "Copy did not succeed after password generation recovered.",
     );
   });
+});
+
+test("page disables generation and offers capability retry when Web Crypto is unavailable", async () => {
+  Object.defineProperty(globalThis, "crypto", {
+    configurable: true,
+    value: undefined,
+  });
+
+  const user = userEvent.setup({ writeToClipboard: false });
+  testingLibrary.render(<Home />);
+
+  const generateButton = requireButton("Generate Password");
+  assert.equal(generateButton.disabled, true);
+
+  await testingLibrary.waitFor(() => {
+    assert.ok(
+      testingLibrary.screen.queryByText(
+        "Secure password generation is unavailable in this browser.",
+      ),
+      "The unavailable capability message was not shown.",
+    );
+  });
+
+  const retryButton = requireButton("Retry Secure Password Generation");
+  assert.equal(generateButton.disabled, true);
+
+  Object.defineProperty(globalThis, "crypto", {
+    configurable: true,
+    value: {
+      getRandomValues(array: Uint32Array): Uint32Array {
+        randomControl.calls += 1;
+        array.fill(0);
+        return array;
+      },
+    },
+  });
+
+  await user.click(retryButton);
+  await testingLibrary.waitFor(() => {
+    assert.equal(generateButton.disabled, false);
+  });
+  assert.ok(
+    testingLibrary.screen.queryByText(
+      "Secure password generation is unavailable in this browser.",
+    ) === null,
+    "The unavailable capability message remained after recovery.",
+  );
+  assert.equal(requireButton("Copy password").disabled, false);
 });

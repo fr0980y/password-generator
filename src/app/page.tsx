@@ -28,6 +28,7 @@ import styles from "./page.module.css";
  */
 export default function Home() {
   const {
+    webCryptoCapability,
     configuration,
     configurationValidation,
     password,
@@ -39,6 +40,7 @@ export default function Home() {
     onConfigurationChange,
     onRestoreDefaults,
     onGenerate,
+    onRetryWebCrypto,
     onCopy,
   } = usePasswordGenerator();
 
@@ -82,7 +84,11 @@ export default function Home() {
         <div className={styles.generateAction}>
           <GenerateButton
             onGenerate={onGenerate}
-            disabled={!isInitialized || !configurationValidation.isValid}
+            disabled={
+              !isInitialized ||
+              webCryptoCapability !== "available" ||
+              !configurationValidation.isValid
+            }
           />
         </div>
 
@@ -110,6 +116,21 @@ export default function Home() {
             <p className={`${styles.feedbackMessage} ${styles.feedbackWarning}`}>
               {settingsWarning}
             </p>
+          )}
+          {webCryptoCapability === "unavailable" && (
+            <div className={styles.capabilityFeedback}>
+              <p className={`${styles.feedbackMessage} ${styles.feedbackError}`}>
+                Secure password generation is unavailable in this browser.
+              </p>
+
+              <button
+                type="button"
+                className={styles.retryButton}
+                onClick={onRetryWebCrypto}
+              >
+                Retry Secure Password Generation
+              </button>
+            </div>
           )}
         </div>
 

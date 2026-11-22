@@ -18,3 +18,11 @@ export interface ValidationResult {
   isValid: boolean;
   errors: string[];
 }
+
+/**
+ * Availability of the browser Web Crypto API used for secure password randomness.
+ */
+export type WebCryptoCapability =
+  | "unknown"
+  | "available"
+  | "unavailable";
