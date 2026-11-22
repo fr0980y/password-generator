@@ -30,28 +30,44 @@ export function AboutPrivacy() {
         <h2 className={styles.heading}>Privacy information</h2>
         <ul>
           <li>
-            Passwords are generated locally on your device using the browser&apos;s
-            Web Crypto API.
+            Passwords are generated locally in your browser using the browser&apos;s
+            Web Crypto API. Password generation does not send passwords to the
+            application server or third parties.
           </li>
+
           <li>
-            Passwords are not transmitted to an application server or third party.
+            Generated passwords are not saved in application storage, and the
+            application does not keep password history.
           </li>
+
           <li>
-            Generated passwords and password history are not saved by the
-            application.
+            Configuration preferences may be saved in this browser&apos;s
+            localStorage. They do not include generated passwords and are not
+            sent to a remote service.
           </li>
+
           <li>
-            Configuration preferences may be stored locally in this browser.
-            They are not stored in a remote account or cloud service.
+            The application does not use accounts, analytics, advertising,
+            tracking, or behavioral telemetry. Your browser or hosting provider
+            may collect information outside the application&apos;s control.
           </li>
+
           <li>
-            The application supports offline use after required resources have
-            been loaded and cached.
+            Local generation does not protect against malware, malicious browser
+            extensions, compromised browsers or operating systems, keyloggers,
+            or screen capture. Someone with physical access to an unlocked
+            device may be able to see information displayed here.
           </li>
+
           <li>
-            Copying to the clipboard occurs only after you explicitly choose Copy.
-            The browser and operating system control clipboard contents after
-            that action.
+            Copying a password is an explicit action. Afterward, the application
+            cannot control clipboard history, synchronization, retention, or
+            access by other applications.
+          </li>
+
+          <li>
+            The application can work offline after its required resources have
+            been cached; offline availability depends on your browser.
           </li>
         </ul>
 
