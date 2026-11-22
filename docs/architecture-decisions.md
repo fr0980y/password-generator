@@ -370,9 +370,9 @@ Do not introduce Tailwind CSS, Bootstrap, or a third-party UI framework for the 
 
 ---
 
-## ADR-010: Use Vitest, React Testing Library, and Playwright
+## ADR-010: Testing Strategy
 
-**Status:** Accepted
+**Status:** Accepted; current implementation recorded November 22, 2026
 
 ### Context
 
@@ -382,42 +382,25 @@ Testing should cover the generation algorithm, configuration validation, persist
 
 No single testing framework provides the most appropriate coverage for all these areas.
 
-### Decision
+### Original Decision (Historical Proposal)
 
-Use three complementary testing tools:
+The original proposal selected Vitest for unit and integration testing, React Testing Library for component behavior, and Playwright for end-to-end browser testing.
 
-**Vitest**
-- Unit tests for password generation.
-- Configuration validation tests.
-- Cryptographic edge-case tests.
-- Storage and clipboard service tests.
+Vitest was not adopted. Jest was considered as an alternative to Vitest, but neither is part of the current test infrastructure. Playwright remains planned and is not yet installed or configured.
 
-**React Testing Library**
-- Component behavior.
-- User interactions.
-- Accessibility-related behavior.
-- Visible feedback and error states.
+### Current Implementation
 
-**Playwright**
-- End-to-end application workflows.
-- Reload and preference persistence.
-- Responsive behavior.
-- Clipboard interaction.
-- Offline functionality.
-- PWA caching and update behavior.
+Use Node.js's built-in `node:test` runner and `node:assert` for the implemented automated tests. Use esbuild to bundle and transpile TypeScript and TSX test entry points.
 
-### Alternatives Considered
+Use React Testing Library for React component and interaction tests, with jsdom to provide simulated DOM behavior. Browser APIs used in these tests are mocked or controlled; this setup does not replace real-browser testing.
 
-- **Jest:** A capable alternative to Vitest, but Vitest is selected for this project.
-- **Component tests alone:** Would not sufficiently validate browser-level behavior and complete workflows.
-- **End-to-end tests alone:** Would make focused unit-level testing less convenient and potentially slower.
+Playwright remains the planned tool for real-browser end-to-end testing, including workflows and browser behavior that Node and jsdom cannot verify.
 
 ### Consequences
 
-- Testing responsibilities are separated by scope.
-- Core generation functionality can be tested without rendering React components.
-- Browser-dependent behavior receives realistic end-to-end coverage.
-- The project has additional development dependencies and test configuration to maintain.
+- Core generation and service behavior can be tested without a browser.
+- React components and interactions can be tested in a simulated DOM.
+- Real-browser behavior is not covered until the planned Playwright setup is implemented.
 - Statistical tests may help identify implementation defects but do not establish cryptographic security.
 
 ---

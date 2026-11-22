@@ -67,71 +67,60 @@ Security verification must also include code review, dependency review, browser 
 
 ---
 
-## 3. Testing Tools
+## 3. Testing Tools and Current Status
 
-The project will use three primary testing tools.
+The current test command bundles the test entry points with esbuild and runs them using Node.js's built-in test runner.
 
-| Tool | Responsibility |
-|---|---|
-| Vitest | Unit and integration testing |
-| React Testing Library | React component behavior and user interactions |
-| Playwright | End-to-end browser testing |
+| Tool | Current status | Responsibility |
+|---|---|---|
+| Node.js `node:test` | Implemented | Executes the automated test cases |
+| Node.js `node:assert` | Implemented | Provides test assertions |
+| esbuild | Implemented | Bundles and transpiles TypeScript and TSX test entry points |
+| React Testing Library | Implemented | Renders React components and supports interaction tests |
+| jsdom | Implemented | Provides a simulated DOM for React tests running under Node.js |
+| Playwright | Planned; not installed or configured | Future real-browser end-to-end tests |
+| Vitest and Jest | Not adopted or installed | Neither is part of the current test infrastructure |
 
-### 3.1 Vitest
+### 3.1 Implemented and Passing
 
-Use Vitest for:
+On November 22, 2026, `npm test` completed successfully: **92 tests passed, 0 failed**. The script builds and runs these seven test files:
 
-- Password-generation logic.
-- Configuration validation.
-- Character-set construction.
-- Random-number handling.
-- Rejection sampling.
-- Secure shuffling.
-- Settings persistence.
-- Clipboard service behavior.
-- Error-handling logic.
+- `src/features/password-generator/password-generator.validation.test.ts`: configuration validation and approved character sets.
+- `src/features/password-generator/password-generator.test.ts`: generated-password constraints, invalid configuration, controlled Web Crypto failures, rejection sampling, and secure shuffle behavior.
+- `src/services/settings-storage.test.ts`: settings serialization, validation, defaults, and simulated storage failures using an in-memory adapter.
+- `src/services/clipboard.test.ts`: Clipboard API forwarding and failure handling using mocked browser globals; it does not access the operating-system clipboard.
+- `src/hooks/use-password-generator.test.tsx`: hook and page initialization, generation, settings behavior, errors, keyboard interaction, and feedback using React Testing Library and jsdom. Web Crypto, storage, and clipboard behavior is controlled or mocked.
+- `src/app/error.test.tsx`: error fallback and recovery interactions using React Testing Library and jsdom.
+- `src/components/common/about-privacy.test.tsx`: privacy disclosure content using React Testing Library and jsdom.
 
-Tests should be organized around the functionality they verify.
+This passing result describes the current test run, not completion of every scenario in this plan. The tests do not establish real-browser behavior.
 
-### 3.2 React Testing Library
+### 3.2 Planned Real-Browser Testing
 
-Use React Testing Library for:
+Playwright has not been installed or configured, so the following are planned tests, not implemented coverage:
 
-- Component rendering.
-- User interaction.
-- Form controls.
-- Configuration changes.
-- Validation messages.
-- Copy feedback.
-- Error states.
-- Accessibility-related behavior.
+- Production static-export rendering and hydration.
+- Actual browser Web Crypto availability in a secure context.
+- Clipboard permission and write behavior in a real browser.
+- Persistence across a real page reload.
+- Service-worker registration, precaching, offline reload, and update behavior.
+- Responsive layout and browser compatibility.
+- Network behavior and security-header/CSP enforcement.
+- PWA installation where supported.
 
-Prefer queries based on accessible roles and labels.
+jsdom can simulate DOM interactions and tests can mock browser APIs, but those checks do not verify browser layout, real permissions, service-worker lifecycle, offline behavior, or deployed headers.
 
-Tests should interact with components as a user would rather than inspecting internal React state.
+### 3.3 Planned Coverage Catalog
 
-### 3.3 Playwright
-
-Use Playwright for:
-
-- Complete user workflows.
-- Application initialization.
-- Page reload behavior.
-- Preference persistence.
-- Password generation and copying.
-- Responsive behavior.
-- Offline functionality.
-- Service worker behavior.
-- PWA-related functionality.
-- Browser-level error handling.
-
-Use browser automation to verify behavior that cannot be established reliably through isolated unit or component tests.
+The unit, component, integration, and end-to-end scenarios below are coverage goals, not a claim that every listed case is implemented. Refer to §3.1 for the current automated-test inventory and passing result. Real-browser cases remain planned until a browser test setup exists.
 
 ---
 
 ## 4. Unit Testing Strategy
 
 Unit tests should provide thorough coverage of the application's independent business logic and browser service abstractions.
+
+The cases in this section define target coverage. The current suite covers a subset; see §3.1 for the specific implemented test files and §3.2 for browser-only gaps.
 
 ### 4.1 Configuration Validation
 
@@ -250,6 +239,8 @@ Do not attempt to prove cryptographic security through statistical distribution 
 
 Component tests should verify visible behavior and interactions.
 
+The cases in this section define target coverage. The current React Testing Library tests cover selected page, error-fallback, and privacy-disclosure behavior; they do not establish every listed component or visual requirement.
+
 ### 5.1 Password Display
 
 Verify:
@@ -329,6 +320,8 @@ Verify:
 
 Integration tests verify that independently implemented modules work together correctly.
 
+The scenarios below are coverage goals. The hook/page test exercises several interactions among the UI, hook, and services, but the table is not a completion record; in particular, service-worker update behavior is not currently tested.
+
 Important integration scenarios include:
 
 | Test ID | Scenario | Expected Result |
@@ -350,7 +343,9 @@ These tests should focus on interactions between the custom hook, services, gene
 
 ---
 
-## 7. End-to-End Testing Strategy
+## 7. Planned End-to-End Testing Strategy
+
+Playwright is not currently installed or configured. The following workflows are planned for real-browser automation.
 
 End-to-end tests should verify complete workflows in a real browser environment.
 
@@ -450,6 +445,8 @@ End-to-end tests should verify complete workflows in a real browser environment.
 
 Security and privacy verification are critical release requirements.
 
+The checks below are verification requirements, not a report of completed testing. Current unit and jsdom tests cover selected code paths; browser/network behavior and deployed policy enforcement remain unverified.
+
 ### 8.1 Password Handling
 
 Verify that:
@@ -536,6 +533,8 @@ Verify that:
 
 Accessibility should be evaluated through automated checks and manual interaction.
 
+The current test suite checks selected keyboard interactions and accessible feedback in jsdom. It does not include axe-core or real screen-reader/browser testing; the checks below remain planned.
+
 ### 9.1 Automated Accessibility Checks
 
 Use an accessibility testing tool such as axe-core, integrated with component or browser tests where appropriate.
@@ -581,6 +580,8 @@ Verify that:
 ---
 
 ## 10. Responsive and Browser Compatibility Testing
+
+The viewport and browser checks in this section are planned. The current test suite does not render the application in a real browser or verify responsive layout.
 
 ### 10.1 Responsive Layouts
 
@@ -646,6 +647,8 @@ Performance testing should focus on practical user experience rather than arbitr
 
 ## 12. Test Environments
 
+The current automated suite runs under Node.js and uses jsdom for selected React tests. The production-build, Pages Preview, and production environments below are planned verification environments, not environments covered by the current automated suite.
+
 ### Development
 
 Used for:
@@ -690,22 +693,13 @@ Do not use real passwords or sensitive personal information in any test environm
 
 Testing should be integrated into the normal development workflow.
 
-Recommended scripts in `package.json`:
+The currently available project commands are:
 
-```json
-{
-  "scripts": {
-    "test": "vitest",
-    "test:run": "vitest run",
-    "test:coverage": "vitest run --coverage",
-    "test:e2e": "playwright test",
-    "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
-  }
-}
-```
+- `npm test` bundles and runs the current Node.js test suite.
+- `npm run lint` runs ESLint.
+- `npm run build` builds the static export and service worker.
 
-The exact scripts may be adjusted to match the installed tooling and project configuration.
+There is currently no Playwright, test-coverage, or type-check script. Add and document browser-test commands only when the corresponding tooling is adopted.
 
 ### Recommended Execution Sequence
 
@@ -716,7 +710,7 @@ During development:
 3. Run relevant integration tests.
 4. Run linting and TypeScript checks.
 
-Before a release:
+Before a release, the following is the target sequence; end-to-end and coverage steps require their planned tooling to be implemented first:
 
 1. Run the complete unit test suite.
 2. Run the complete component test suite.

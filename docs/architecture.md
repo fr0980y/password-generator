@@ -43,9 +43,12 @@ The architecture emphasizes:
 | Settings persistence | localStorage | Store user preferences |
 | PWA integration | Serwist (`@serwist/next`) | Service-worker generation and integration |
 | Styling | CSS Modules and standard CSS | Component and application styling |
-| Unit testing | Vitest | Unit and integration tests |
+| Test execution | Node.js built-in `node:test` | Run unit and integration test files |
+| Test assertions | Node.js `node:assert` | Assertions in automated tests |
+| Test bundling | esbuild | Bundle and transpile TypeScript and TSX test entry points |
 | Component testing | React Testing Library | React component behavior |
-| End-to-end testing | Playwright | Browser-level testing |
+| Simulated DOM | jsdom | DOM behavior for React tests running under Node.js |
+| End-to-end testing | Playwright (planned) | Real-browser testing; not yet installed or configured |
 
 No backend framework, database, or external state-management library is required.
 
@@ -850,56 +853,29 @@ The interface should remain:
 
 ## 14. Testing Architecture
 
-Testing will use three complementary tools.
+The implemented automated test suite runs under Node.js. esbuild bundles and transpiles TypeScript and TSX test entry points before the Node.js test runner executes them.
 
-### 14.1 Vitest
+### 14.1 Node.js Test Runner and Assertions
 
-Used for unit and integration testing.
+Tests use Node.js's built-in `node:test` API and `node:assert` assertions for unit and integration coverage.
 
-Primary targets:
+### 14.2 esbuild
 
-- Password generation.
-- Configuration validation.
-- Character-set construction.
-- Random selection and shuffling.
-- Settings serialization and validation.
-- Storage failure handling.
-- Clipboard service behavior.
+esbuild bundles and transpiles TypeScript and TSX test entry points. It is a build tool for the tests, not a test runner.
 
-### 14.2 React Testing Library
+### 14.3 React Testing Library and jsdom
 
-Used for component and interface testing.
+React Testing Library is used for React component and interaction tests. jsdom supplies a simulated DOM for those tests in Node.js.
 
-Primary targets:
+Browser APIs required by tests are mocked or controlled. jsdom does not verify actual browser rendering, secure-context behavior, operating-system clipboard access, service-worker lifecycle, or offline operation.
 
-- Password display.
-- Configuration controls.
-- Validation feedback.
-- Generate and Copy actions.
-- Restore Defaults behavior.
-- Accessible interaction and feedback.
+### 14.4 Playwright (Planned)
 
-Tests should emphasize observable user behavior rather than implementation details.
+Playwright is planned for real-browser end-to-end testing but is not currently installed or configured. Planned coverage includes complete workflows, production rendering, browser APIs, responsive behavior, offline operation, and service-worker behavior.
 
-### 14.3 Playwright
+### 14.5 Security Testing Priorities
 
-Used for end-to-end browser testing.
-
-Primary targets:
-
-- Application initialization.
-- Complete password-generation workflows.
-- Configuration persistence across reloads.
-- Clipboard behavior.
-- Responsive layouts.
-- Offline functionality.
-- PWA resource caching.
-- Update behavior.
-- Browser compatibility.
-
-### 14.4 Security Testing Priorities
-
-Testing should specifically verify:
+The following are verification goals; the current automated tests cover only the behaviors identified in the test plan's implemented-coverage summary:
 
 - Generated passwords are never persisted.
 - Passwords are never transmitted externally.
@@ -1016,9 +992,11 @@ Future features should not be introduced until they have defined requirements an
 | PWA integration | Serwist |
 | Error handling | Local handling plus React Error Boundary |
 | Styling | CSS Modules and standard CSS |
-| Unit testing | Vitest |
+| Test execution | Node.js built-in `node:test` and `node:assert` |
+| Test bundling | esbuild |
 | Component testing | React Testing Library |
-| End-to-end testing | Playwright |
+| Simulated DOM | jsdom |
+| Real-browser end-to-end testing | Playwright (planned; not yet installed or configured) |
 
 ## 19. Implementation Considerations
 
