@@ -64,6 +64,9 @@ const GENERATION_ERROR_MESSAGE =
 const COPY_ERROR_MESSAGE =
   "Unable to copy automatically. Select the password and copy it manually.";
 
+/** Duration of the successful clipboard confirmation. */
+const COPY_CONFIRMATION_DURATION_MS = 2_000;
+
 /** Existing settings-storage warning shown when preferences cannot be saved. */
 const SETTINGS_WARNING_MESSAGE =
   "Settings won't be saved on this device. Your current settings will remain active until you close or reload the application.";
@@ -167,6 +170,15 @@ export function usePasswordGenerator(): UsePasswordGeneratorResult {
   // Copy attempt IDs prevent older asynchronous writes and unmount cleanup
   // from replacing feedback owned by a newer attempt or a new password.
   const copyAttemptIdRef = useRef(0);
+  const copyConfirmationTimeoutRef =
+    useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearCopyConfirmationTimer = useCallback(() => {
+    if (copyConfirmationTimeoutRef.current !== null) {
+      clearTimeout(copyConfirmationTimeoutRef.current);
+      copyConfirmationTimeoutRef.current = null;
+    }
+  }, []);
 
   /**
    * Loads saved settings and attempts initial generation after client mount.
@@ -222,8 +234,9 @@ export function usePasswordGenerator(): UsePasswordGeneratorResult {
       effectIsActive = false;
       isMountedRef.current = false;
       copyAttemptIdRef.current += 1;
+      clearCopyConfirmationTimer();
     };
-  }, []);
+  }, [clearCopyConfirmationTimer]);
 
   /**
    * Updates in-memory settings and persists only valid configurations.
@@ -281,6 +294,7 @@ export function usePasswordGenerator(): UsePasswordGeneratorResult {
     try {
       const generatedPassword = generatePassword(configuration);
       copyAttemptIdRef.current += 1;
+      clearCopyConfirmationTimer();
       setIsCopied(false);
       setCopyError(null);
       setPassword(generatedPassword);
@@ -289,7 +303,7 @@ export function usePasswordGenerator(): UsePasswordGeneratorResult {
       setWebCryptoCapability(detectWebCryptoCapability());
       setGenerationError(GENERATION_ERROR_MESSAGE);
     }
-  }, [configuration]);
+  }, [clearCopyConfirmationTimer, configuration]);
 
   /**
    * Rechecks browser capability after an unavailable state.
@@ -313,6 +327,7 @@ export function usePasswordGenerator(): UsePasswordGeneratorResult {
     try {
       const generatedPassword = generatePassword(configuration);
       copyAttemptIdRef.current += 1;
+      clearCopyConfirmationTimer();
       setIsCopied(false);
       setCopyError(null);
       setPassword(generatedPassword);
@@ -321,7 +336,7 @@ export function usePasswordGenerator(): UsePasswordGeneratorResult {
       setWebCryptoCapability(detectWebCryptoCapability());
       setGenerationError(GENERATION_ERROR_MESSAGE);
     }
-  }, [configuration, isInitialized]);
+  }, [clearCopyConfirmationTimer, configuration, isInitialized]);
 
   /**
    * Copies only the password currently displayed when the action is invoked.
@@ -337,6 +352,7 @@ export function usePasswordGenerator(): UsePasswordGeneratorResult {
 
     const attemptId = copyAttemptIdRef.current + 1;
     copyAttemptIdRef.current = attemptId;
+    clearCopyConfirmationTimer();
     setIsCopied(false);
     setCopyError(null);
 
@@ -347,6 +363,15 @@ export function usePasswordGenerator(): UsePasswordGeneratorResult {
       }
 
       setIsCopied(true);
+      copyConfirmationTimeoutRef.current = setTimeout(() => {
+        // clearTimeout cannot stop a callback that was already queued.
+        if (!isMountedRef.current || attemptId !== copyAttemptIdRef.current) {
+          return;
+        }
+
+        copyConfirmationTimeoutRef.current = null;
+        setIsCopied(false);
+      }, COPY_CONFIRMATION_DURATION_MS);
     } catch {
       if (!isMountedRef.current || attemptId !== copyAttemptIdRef.current) {
         return;
@@ -354,7 +379,7 @@ export function usePasswordGenerator(): UsePasswordGeneratorResult {
 
       setCopyError(COPY_ERROR_MESSAGE);
     }
-  }, [isInitialized, password]);
+  }, [clearCopyConfirmationTimer, isInitialized, password]);
 
   return {
     webCryptoCapability,

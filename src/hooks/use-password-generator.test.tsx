@@ -85,6 +85,15 @@ const originalCryptoDescriptor = Object.getOwnPropertyDescriptor(
   globalThis,
   "crypto",
 );
+/** Timer descriptors restored after deterministic confirmation-timer tests. */
+const originalSetTimeoutDescriptor = Object.getOwnPropertyDescriptor(
+  globalThis,
+  "setTimeout",
+);
+const originalClearTimeoutDescriptor = Object.getOwnPropertyDescriptor(
+  globalThis,
+  "clearTimeout",
+);
 /** JSDOM descriptors restored so storage and clipboard mocks do not leak. */
 const originalLocalStorageDescriptor = Object.getOwnPropertyDescriptor(
   dom.window,
@@ -377,6 +386,85 @@ function deferredClipboardWrite(): {
   return { promise, resolve, reject };
 }
 
+/** A controllable timeout scheduled by the hook during a test. */
+interface ScheduledTimer {
+  callback: () => void;
+  delay: number;
+  dueAt: number;
+  cleared: boolean;
+}
+
+/**
+ * Replaces browser timers with a local clock so confirmation expiry is exact
+ * and cancelled callbacks can be invoked deliberately to test stale guards.
+ */
+function installFakeTimers(): {
+  timers: ScheduledTimer[];
+  activeTimerCount: () => number;
+  advanceBy: (duration: number) => void;
+  fire: (timer: ScheduledTimer) => void;
+} {
+  const timers: ScheduledTimer[] = [];
+  const timersByHandle = new Map<number, ScheduledTimer>();
+  let nextHandle = 0;
+  let now = 0;
+
+  const setTimeoutMock = ((callback: () => void, delay = 0) => {
+    const timer: ScheduledTimer = {
+      callback,
+      delay,
+      dueAt: now + delay,
+      cleared: false,
+    };
+    const handle = ++nextHandle;
+    timers.push(timer);
+    timersByHandle.set(handle, timer);
+    return handle as unknown as ReturnType<typeof setTimeout>;
+  }) as typeof setTimeout;
+  const clearTimeoutMock = ((handle: ReturnType<typeof setTimeout>) => {
+    const timer = timersByHandle.get(Number(handle));
+    if (timer) {
+      timer.cleared = true;
+    }
+  }) as typeof clearTimeout;
+
+  Object.defineProperty(globalThis, "setTimeout", {
+    configurable: true,
+    writable: true,
+    value: setTimeoutMock,
+  });
+  Object.defineProperty(globalThis, "clearTimeout", {
+    configurable: true,
+    writable: true,
+    value: clearTimeoutMock,
+  });
+
+  return {
+    timers,
+    activeTimerCount: () => timers.filter((timer) => !timer.cleared).length,
+    advanceBy(duration) {
+      const target = now + duration;
+      while (true) {
+        const nextTimer = timers
+          .filter((timer) => !timer.cleared && timer.dueAt <= target)
+          .sort((left, right) => left.dueAt - right.dueAt)[0];
+        if (!nextTimer) {
+          break;
+        }
+
+        now = nextTimer.dueAt;
+        nextTimer.cleared = true;
+        nextTimer.callback();
+      }
+      now = target;
+    },
+    fire(timer) {
+      timer.cleared = true;
+      timer.callback();
+    },
+  };
+}
+
 /**
  * Enables React's development-only effect replay for lifecycle tests.
  *
@@ -456,6 +544,8 @@ beforeEach(() => {
 afterEach(() => {
   // Remove rendered roots and restore every mutable browser/global fixture.
   testingLibrary.cleanup();
+  restoreProperty(globalThis, "setTimeout", originalSetTimeoutDescriptor);
+  restoreProperty(globalThis, "clearTimeout", originalClearTimeoutDescriptor);
   restoreProperty(
     dom.window.navigator,
     "clipboard",
@@ -750,6 +840,7 @@ test("retry remains unavailable when Web Crypto is still inaccessible", async ()
 });
 
 test("Strict Mode effect replay initializes and generates only once", async () => {
+  const fakeTimers = installFakeTimers();
   // Use one ordinary mount as a baseline instead of hard-coding generator draws.
   const normalRender = testingLibrary.renderHook(() => usePasswordGenerator());
   await waitForInitialization(() => normalRender.result.current.isInitialized);
@@ -771,6 +862,12 @@ test("Strict Mode effect replay initializes and generates only once", async () =
 
   assert.equal(storage.readCount, 1);
   assert.equal(randomControl.calls, singleInitializationRandomCalls);
+
+  await testingLibrary.act(async () => {
+    await result.current.onCopy();
+  });
+  assert.equal(fakeTimers.timers.length, 1);
+  assert.equal(fakeTimers.activeTimerCount(), 1);
 });
 
 test("unmount before the initialization microtask prevents service work", async () => {
@@ -917,6 +1014,7 @@ test("failed generation preserves the password and does not expose implementatio
 });
 
 test("successful generation clears copy feedback and invalidates pending copy results", async () => {
+  const fakeTimers = installFakeTimers();
   const { result } = testingLibrary.renderHook(() => usePasswordGenerator());
   await waitForInitialization(() => result.current.isInitialized);
 
@@ -928,12 +1026,40 @@ test("successful generation clears copy feedback and invalidates pending copy re
     await initialCopy;
   });
   assert.equal(result.current.isCopied, true);
+  assert.equal(fakeTimers.activeTimerCount(), 1);
 
+  randomControl.fail = true;
+  testingLibrary.act(() => {
+    result.current.onGenerate();
+  });
+  assert.equal(result.current.isCopied, true);
+  assert.equal(fakeTimers.activeTimerCount(), 1);
+  testingLibrary.act(() => {
+    fakeTimers.advanceBy(1_999);
+  });
+  assert.equal(result.current.isCopied, true);
+  testingLibrary.act(() => {
+    fakeTimers.advanceBy(1);
+  });
+  assert.equal(result.current.isCopied, false);
+
+  randomControl.fail = false;
+  await testingLibrary.act(async () => {
+    await result.current.onCopy();
+  });
+  assert.equal(result.current.isCopied, true);
+  assert.equal(fakeTimers.activeTimerCount(), 1);
+  const confirmationTimer = fakeTimers.timers[fakeTimers.timers.length - 1];
   await testingLibrary.act(async () => {
     result.current.onGenerate();
   });
   assert.equal(result.current.isCopied, false);
   assert.equal(result.current.copyError, null);
+  assert.equal(fakeTimers.activeTimerCount(), 0);
+  testingLibrary.act(() => {
+    fakeTimers.fire(confirmationTimer);
+  });
+  assert.equal(result.current.isCopied, false);
 
   const pendingWrite = deferredClipboardWrite();
   clipboardWriter = () => pendingWrite.promise;
@@ -974,6 +1100,7 @@ test("copy does nothing before initialization or when no password was generated"
 });
 
 test("successful copy waits for the service and copies the displayed password", async () => {
+  const fakeTimers = installFakeTimers();
   const { result } = testingLibrary.renderHook(() => usePasswordGenerator());
   await waitForInitialization(() => result.current.isInitialized);
 
@@ -1000,9 +1127,22 @@ test("successful copy waits for the service and copies the displayed password", 
 
   assert.equal(result.current.isCopied, true);
   assert.equal(result.current.copyError, null);
+  assert.equal(fakeTimers.timers.length, 1);
+  assert.equal(fakeTimers.timers[0].delay, 2_000);
+
+  testingLibrary.act(() => {
+    fakeTimers.advanceBy(1_999);
+  });
+  assert.equal(result.current.isCopied, true);
+  testingLibrary.act(() => {
+    fakeTimers.advanceBy(1);
+  });
+  assert.equal(result.current.isCopied, false);
+  assert.equal(fakeTimers.activeTimerCount(), 0);
 });
 
 test("copy failure preserves the password and a new attempt resets its feedback", async () => {
+  const fakeTimers = installFakeTimers();
   const { result } = testingLibrary.renderHook(() => usePasswordGenerator());
   await waitForInitialization(() => result.current.isInitialized);
 
@@ -1029,6 +1169,8 @@ test("copy failure preserves the password and a new attempt resets its feedback"
     !result.current.copyError.includes("Synthetic browser-specific failure"),
     "The underlying clipboard error was exposed.",
   );
+  assert.equal(result.current.isCopied, false);
+  assert.equal(fakeTimers.timers.length, 0);
 
   const nextWrite = deferredClipboardWrite();
   clipboardWriter = () => nextWrite.promise;
@@ -1045,6 +1187,42 @@ test("copy failure preserves the password and a new attempt resets its feedback"
     await nextCopy;
   });
   assert.equal(result.current.isCopied, true);
+  assert.equal(fakeTimers.activeTimerCount(), 1);
+});
+
+test("a new copy attempt clears its prior timer and stale feedback cannot clear newer success", async () => {
+  const fakeTimers = installFakeTimers();
+  const { result } = testingLibrary.renderHook(() => usePasswordGenerator());
+  await waitForInitialization(() => result.current.isInitialized);
+
+  await testingLibrary.act(async () => {
+    await result.current.onCopy();
+  });
+  const previousTimer = fakeTimers.timers[0];
+  assert.equal(result.current.isCopied, true);
+
+  const nextWrite = deferredClipboardWrite();
+  clipboardWriter = () => nextWrite.promise;
+  let nextCopy!: Promise<void>;
+  testingLibrary.act(() => {
+    nextCopy = result.current.onCopy();
+  });
+  assert.equal(previousTimer.cleared, true);
+  assert.equal(fakeTimers.activeTimerCount(), 0);
+  assert.equal(result.current.isCopied, false);
+
+  nextWrite.resolve();
+  await testingLibrary.act(async () => {
+    await nextCopy;
+  });
+  assert.equal(result.current.isCopied, true);
+  assert.equal(fakeTimers.activeTimerCount(), 1);
+
+  testingLibrary.act(() => {
+    fakeTimers.fire(previousTimer);
+  });
+  assert.equal(result.current.isCopied, true);
+  assert.equal(fakeTimers.activeTimerCount(), 1);
 });
 
 test("newer overlapping copy attempts own the final feedback", async () => {
@@ -1102,6 +1280,32 @@ test("a pending clipboard completion after unmount performs no state update", as
   await testingLibrary.act(async () => {
     await copyPromise;
   });
+});
+
+test("unmount clears a pending confirmation timer and blocks its callback", async () => {
+  const fakeTimers = installFakeTimers();
+  let renderCount = 0;
+  const { result, unmount } = testingLibrary.renderHook(() => {
+    renderCount += 1;
+    return usePasswordGenerator();
+  });
+  await waitForInitialization(() => result.current.isInitialized);
+
+  await testingLibrary.act(async () => {
+    await result.current.onCopy();
+  });
+  const confirmationTimer = fakeTimers.timers[0];
+  const rendersBeforeUnmount = renderCount;
+  assert.equal(result.current.isCopied, true);
+  assert.equal(fakeTimers.activeTimerCount(), 1);
+
+  unmount();
+  assert.equal(confirmationTimer.cleared, true);
+  assert.equal(fakeTimers.activeTimerCount(), 0);
+  testingLibrary.act(() => {
+    fakeTimers.fire(confirmationTimer);
+  });
+  assert.equal(renderCount, rendersBeforeUnmount);
 });
 
 test("page supports keyboard workflow, action guards, and accessible feedback", async () => {
