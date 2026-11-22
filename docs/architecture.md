@@ -702,14 +702,18 @@ There will be no Next.js runtime server, API routes, or server actions.
 
 Browser-specific functionality must execute only in appropriate client-side contexts.
 
+The root `src/app/not-found.tsx` provides the exported not-found experience and
+uses a CSS Module for its styling. This replaces Next.js's default 404 markup,
+which contains inline styles.
+
 ### 11.2 Service Worker
 
 Serwist (`@serwist/next`) will provide service-worker integration.
 
-The production build runs `next build` followed by `serwist build`. The Serwist
-configuration scans Next.js prerendered output, Next.js static assets, public
-assets, and bundled fonts, then writes the generated worker to `out/sw.js` for
-static deployment.
+The production build runs `next build`, `serwist build`, and then the security
+header generator. The Serwist configuration scans Next.js prerendered output,
+Next.js static assets, public assets, and bundled fonts, then writes the
+generated worker to `out/sw.js` for static deployment.
 
 The service worker will be responsible for:
 
@@ -916,9 +920,17 @@ The application must handle missing or unavailable browser APIs gracefully.
 
 ### 15.4 Content Security Policy
 
-The application should implement a restrictive Content Security Policy appropriate to its static architecture.
+Cloudflare Pages applies the security headers generated in `out/_headers`.
+The CSP denies resources by default and allows the application's same-origin
+scripts, styles, fonts, images, connections, manifest, and service worker.
+SHA-256 source expressions are generated from every inline script in the final
+exported HTML; neither `'unsafe-inline'` nor `'unsafe-eval'` is permitted.
 
-The policy should avoid unnecessary external script, style, font, image, and connection sources.
+Because the application uses static export, CSP nonces cannot be generated per
+request. The header-generation script therefore runs after both Next.js and
+Serwist have completed their builds and writes the generated policy directly to
+the Cloudflare Pages output directory. Browser enforcement remains a separate
+verification step.
 
 ### 15.5 Dependency Management
 
@@ -934,9 +946,16 @@ The application will be deployed as a static site through Cloudflare Pages.
 
 ### 16.1 Build Process
 
-The Next.js build produces a static export.
+The build runs `next build`, `serwist build`, and then
+`scripts/generate-security-headers.mjs`. The final step hashes inline scripts
+across every exported HTML file and writes the Cloudflare Pages `_headers` file
+to `out/_headers`. No manually maintained headers file is copied from `public/`.
 
 The generated static output is deployed to Cloudflare Pages.
+
+The generated headers include the restrictive CSP, `X-Content-Type-Options`,
+`Referrer-Policy`, `Permissions-Policy`, `X-Frame-Options`, and
+`Strict-Transport-Security`.
 
 ### 16.2 Runtime
 
@@ -1012,7 +1031,6 @@ The following details will be resolved during implementation rather than treated
 - Exact component props and hook return types.
 - Detailed CSS organization.
 - Test coverage targets.
-- Content Security Policy directives.
 - Cloudflare Pages build and deployment settings.
 
 These decisions should remain consistent with the requirements and architectural principles established in this document.

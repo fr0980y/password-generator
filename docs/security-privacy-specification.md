@@ -488,24 +488,37 @@ Normal static asset delivery and application update requests are permitted.
 
 ## 10. Content Security Policy
 
-The application should implement a restrictive Content Security Policy appropriate for its static hosting and client-side architecture.
+The static export applies a restrictive Content Security Policy through the
+Cloudflare Pages `_headers` file generated at `out/_headers`.
 
-The policy should:
+The policy uses `default-src 'none'` and permits only same-origin scripts,
+styles, images, fonts, connections, the manifest, and service worker. It also
+sets `object-src 'none'`, `base-uri 'self'`, `form-action 'none'`, and
+`frame-ancestors 'none'`. It must not include `'unsafe-inline'`,
+`'unsafe-eval'`, wildcard sources, or unverified third-party origins.
 
-- Restrict script sources.
-- Restrict connection destinations.
-- Restrict object embedding.
-- Restrict frame embedding.
-- Restrict base URL manipulation.
-- Restrict form submission destinations where appropriate.
-- Avoid unnecessary inline script permissions.
-- Avoid broad wildcard source allowances.
+Next.js emits inline bootstrap and hydration scripts in static HTML. After both
+Next.js and Serwist finish building, `scripts/generate-security-headers.mjs`
+discovers every exported HTML file, normalizes line endings as the browser does,
+hashes each inline script with SHA-256, deduplicates and sorts the hashes, and
+writes the policy to `out/_headers`. The hashes are generated from the final
+export on every build; they are not manually maintained.
 
-The final policy must be tested against the actual Next.js and Serwist output.
+The root `src/app/not-found.tsx` uses its CSS Module instead of Next.js's
+default inline-styled 404 markup, allowing `style-src 'self'` to cover the
+exported error pages without inline style exceptions.
 
-Do not introduce CSP directives that unnecessarily break application functionality.
+The application uses static export, so request-specific CSP nonces are not
+available. Hashes authorize only the inline scripts emitted by the build.
 
-Where practical, configure security headers through the hosting platform because static export does not provide a running Next.js server to apply runtime headers.
+The generated header also includes `X-Content-Type-Options: nosniff`,
+`Referrer-Policy: no-referrer`, a restrictive `Permissions-Policy`,
+`X-Frame-Options: DENY`, and `Strict-Transport-Security: max-age=31536000`.
+The HSTS value deliberately omits `includeSubDomains` and `preload`.
+
+Automated hash-generation tests and static-export inspection do not establish
+browser enforcement. CSP violation detection, interactive behavior under the
+policy, and deployed Cloudflare response-header verification remain planned.
 
 ---
 

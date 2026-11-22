@@ -83,7 +83,7 @@ The current test command bundles the test entry points with esbuild and runs the
 
 ### 3.1 Implemented and Passing
 
-On November 22, 2026, `npm test` completed successfully: **92 tests passed, 0 failed**. The script builds and runs these seven test files:
+On November 22, 2026, `npm test` completed successfully: **98 tests passed, 0 failed**. The script builds and runs these eight test files:
 
 - `src/features/password-generator/password-generator.validation.test.ts`: configuration validation and approved character sets.
 - `src/features/password-generator/password-generator.test.ts`: generated-password constraints, invalid configuration, controlled Web Crypto failures, rejection sampling, and secure shuffle behavior.
@@ -92,6 +92,7 @@ On November 22, 2026, `npm test` completed successfully: **92 tests passed, 0 fa
 - `src/hooks/use-password-generator.test.tsx`: hook and page initialization, generation, settings behavior, errors, keyboard interaction, and feedback using React Testing Library and jsdom. Web Crypto, storage, and clipboard behavior is controlled or mocked.
 - `src/app/error.test.tsx`: error fallback and recovery interactions using React Testing Library and jsdom.
 - `src/components/common/about-privacy.test.tsx`: privacy disclosure content using React Testing Library and jsdom.
+- `scripts/generate-security-headers.test.mjs`: browser-normalized inline-script hash extraction, deterministic header generation across nested HTML files, and failure handling when export inputs or header output are missing or incomplete.
 
 This passing result describes the current Node.js test run, not completion of every scenario in this plan. These Node.js tests do not establish real-browser behavior; see §3.2 for implemented browser coverage.
 
@@ -99,7 +100,9 @@ This passing result describes the current Node.js test run, not completion of ev
 
 Playwright is configured to run against the production export in `out/`. The Chromium suite contains the infrastructure smoke test and application workflows in `tests/e2e/application-workflows.spec.ts`. The workflows verify the initial generated password and configuration, browser Web Crypto availability, explicit generation and validation recovery, clipboard writes and timed success feedback, and preferences-only localStorage persistence with a fresh password after reload. The tests use real browser APIs, isolate state using Playwright's per-test browser contexts, and do not log generated passwords.
 
-The following browser checks remain planned:
+The build now generates `out/_headers` and Node.js tests verify inline-script
+hash extraction and policy generation. This does not enforce the policy in a
+browser. The following browser checks remain planned:
 
 - Clipboard permission failure and manual-copy fallback.
 - Service-worker registration, precaching, offline reload, and update behavior.
@@ -516,6 +519,10 @@ Verify that:
 - [ ] The policy does not permit unnecessary external script execution.
 - [ ] The application works under the deployed security policy.
 
+The static build generates Cloudflare Pages headers and tests the hash
+generator, but the checks above remain incomplete until browser enforcement and
+deployed response headers are verified.
+
 ### 8.7 Service Worker
 
 Verify that:
@@ -664,7 +671,9 @@ Used for:
 - Static export verification.
 - Production-like browser testing.
 - Service worker behavior.
-- Content Security Policy verification.
+- Generated security-header file and CSP hash-generation checks.
+
+Browser enforcement of CSP is not yet covered by the local Playwright suite.
 
 ### Cloudflare Pages Preview
 

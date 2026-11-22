@@ -434,6 +434,14 @@ Use GitHub integration to trigger builds and deployments when changes are pushed
 - No application server needs to be maintained.
 - Cloudflare Pages provides the hosting and delivery infrastructure.
 - Build and deployment settings must remain consistent with the Next.js static export configuration.
+- Cloudflare Pages response headers are generated in `out/_headers` after both
+  Next.js and Serwist have completed their builds. Inline-script CSP hashes are
+  derived from all exported HTML, since static pages cannot use per-request
+  nonces.
+- The root not-found page uses a CSS Module rather than Next.js's default
+  inline-styled error markup so that `style-src 'self'` remains practical.
+- Browser enforcement of the deployed policy requires separate Playwright and
+  Cloudflare Pages preview verification.
 
 ---
 
