@@ -78,7 +78,7 @@ The current test command bundles the test entry points with esbuild and runs the
 | esbuild | Implemented | Bundles and transpiles TypeScript and TSX test entry points |
 | React Testing Library | Implemented | Renders React components and supports interaction tests |
 | jsdom | Implemented | Provides a simulated DOM for React tests running under Node.js |
-| Playwright | Planned; not installed or configured | Future real-browser end-to-end tests |
+| `@playwright/test` | Implemented; Chromium infrastructure smoke test only | Launch Chromium and verify the production static export is served and loads |
 | Vitest and Jest | Not adopted or installed | Neither is part of the current test infrastructure |
 
 ### 3.1 Implemented and Passing
@@ -95,9 +95,11 @@ On November 22, 2026, `npm test` completed successfully: **92 tests passed, 0 fa
 
 This passing result describes the current test run, not completion of every scenario in this plan. The tests do not establish real-browser behavior.
 
-### 3.2 Planned Real-Browser Testing
+### 3.2 Playwright Smoke Test and Planned Real-Browser Testing
 
-Playwright has not been installed or configured, so the following are planned tests, not implemented coverage:
+Playwright is installed and configured to run one infrastructure smoke test against the production export in `out/`. The test confirms Chromium launches, the local static server responds successfully, and the application page loads with its expected title. It does not exercise application behavior or expose generated passwords.
+
+The following are planned tests, not implemented coverage:
 
 - Production static-export rendering and hydration.
 - Actual browser Web Crypto availability in a secure context.
@@ -112,7 +114,7 @@ jsdom can simulate DOM interactions and tests can mock browser APIs, but those c
 
 ### 3.3 Planned Coverage Catalog
 
-The unit, component, integration, and end-to-end scenarios below are coverage goals, not a claim that every listed case is implemented. Refer to §3.1 for the current automated-test inventory and passing result. Real-browser cases remain planned until a browser test setup exists.
+The unit, component, integration, and end-to-end scenarios below are coverage goals, not a claim that every listed case is implemented. Refer to §3.1 for the current automated-test inventory and passing result. Application workflow and browser-behavior cases remain planned; the smoke test is infrastructure coverage only.
 
 ---
 
@@ -345,7 +347,7 @@ These tests should focus on interactions between the custom hook, services, gene
 
 ## 7. Planned End-to-End Testing Strategy
 
-Playwright is not currently installed or configured. The following workflows are planned for real-browser automation.
+Playwright is configured for a production-export infrastructure smoke test. The following application workflows remain planned for later real-browser automation.
 
 End-to-end tests should verify complete workflows in a real browser environment.
 
@@ -698,8 +700,11 @@ The currently available project commands are:
 - `npm test` bundles and runs the current Node.js test suite.
 - `npm run lint` runs ESLint.
 - `npm run build` builds the static export and service worker.
+- `npx playwright install chromium` installs the Chromium browser used by Playwright.
+- `npm run test:e2e` builds the production export, then runs the Playwright smoke test.
+- `npm run test:e2e:quick` runs Playwright against an already-built export; run `npm run build` first to avoid using stale output.
 
-There is currently no Playwright, test-coverage, or type-check script. Add and document browser-test commands only when the corresponding tooling is adopted.
+There is not yet a complete Playwright workflow suite or a test-coverage script. `npx tsc --noEmit` runs the TypeScript check.
 
 ### Recommended Execution Sequence
 

@@ -48,7 +48,7 @@ The architecture emphasizes:
 | Test bundling | esbuild | Bundle and transpile TypeScript and TSX test entry points |
 | Component testing | React Testing Library | React component behavior |
 | Simulated DOM | jsdom | DOM behavior for React tests running under Node.js |
-| End-to-end testing | Playwright (planned) | Real-browser testing; not yet installed or configured |
+| End-to-end testing | Playwright (`@playwright/test`) | Chromium infrastructure smoke test against the production static export; application workflows remain planned |
 
 No backend framework, database, or external state-management library is required.
 
@@ -869,9 +869,11 @@ React Testing Library is used for React component and interaction tests. jsdom s
 
 Browser APIs required by tests are mocked or controlled. jsdom does not verify actual browser rendering, secure-context behavior, operating-system clipboard access, service-worker lifecycle, or offline operation.
 
-### 14.4 Playwright (Planned)
+### 14.4 Playwright
 
-Playwright is planned for real-browser end-to-end testing but is not currently installed or configured. Planned coverage includes complete workflows, production rendering, browser APIs, responsive behavior, offline operation, and service-worker behavior.
+Playwright is configured to run Chromium against the production static export served from `out/`. The infrastructure smoke test confirms Chromium launches, the local server responds, and the exported application page loads with its expected title. `npm run test:e2e` rebuilds the export before running the test; `npm run test:e2e:quick` uses an existing export.
+
+This smoke test does not cover application workflows. Password generation, browser APIs, responsive behavior, offline operation, and service-worker behavior remain planned for a later phase. Install the required browser with `npx playwright install chromium`.
 
 ### 14.5 Security Testing Priorities
 
@@ -996,7 +998,7 @@ Future features should not be introduced until they have defined requirements an
 | Test bundling | esbuild |
 | Component testing | React Testing Library |
 | Simulated DOM | jsdom |
-| Real-browser end-to-end testing | Playwright (planned; not yet installed or configured) |
+| Real-browser end-to-end testing | Playwright (Chromium infrastructure smoke test configured; application workflows planned) |
 
 ## 19. Implementation Considerations
 
