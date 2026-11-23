@@ -875,7 +875,9 @@ Browser APIs required by tests are mocked or controlled. jsdom does not verify a
 
 ### 14.4 Playwright
 
-Playwright runs Chromium against the production static export served from `out/`. The suite includes an infrastructure smoke test and browser workflows for initial generation, configuration and validation, clipboard copying, and preference persistence across reloads. These tests use Chromium's real Web Crypto and Clipboard APIs; they do not mock application services. `npm run test:e2e` rebuilds the export before running the suite; `npm run test:e2e:quick` uses an existing export.
+Playwright runs Chromium against the production static export served from `out/`. The suite includes an infrastructure and security-header smoke test, browser workflows for initial generation, configuration and validation, clipboard copying, and preference persistence across reloads, plus CSP violation capture for normal application use and the custom 404 page. These tests use Chromium's real Web Crypto and Clipboard APIs; they do not mock application services. `npm run test:e2e` rebuilds the export before running the suite; `npm run test:e2e:quick` uses an existing export.
+
+The local static server reads the generated `out/_headers` file and applies its Cloudflare Pages path rules to root, HTML, asset, and 404 responses. This makes local HTTP tests exercise the same header values and CSP as deployment. Local HTTP cannot demonstrate HSTS browser enforcement; only the response header is asserted locally. Deployed HTTPS/HSTS behavior and Cloudflare preview behavior require a separate preview check.
 
 The browser suite does not yet cover clipboard-denial behavior, service-worker lifecycle, offline operation, responsive layouts, or other browser engines. Install Chromium with `npx playwright install chromium`.
 
@@ -929,8 +931,12 @@ exported HTML; neither `'unsafe-inline'` nor `'unsafe-eval'` is permitted.
 Because the application uses static export, CSP nonces cannot be generated per
 request. The header-generation script therefore runs after both Next.js and
 Serwist have completed their builds and writes the generated policy directly to
-the Cloudflare Pages output directory. Browser enforcement remains a separate
-verification step.
+the Cloudflare Pages output directory. The local static server applies that
+generated file instead of defining a second policy. Playwright installs CSP
+violation capture before application scripts execute and verifies normal
+hydration, generation, copying, and custom 404 behavior without violations.
+Browser enforcement is therefore established locally in Chromium; deployed
+Cloudflare HTTPS response-header behavior remains a separate preview check.
 
 ### 15.5 Dependency Management
 

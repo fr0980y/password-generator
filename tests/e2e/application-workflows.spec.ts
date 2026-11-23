@@ -72,6 +72,23 @@ async function openApplication(page: Page): Promise<number> {
         return;
       }
 
+      // Register the CSP violation listener before any application script can
+      // execute, while keeping the records in page memory for later assertions.
+      Object.defineProperty(window, "__playwrightCspViolations", {
+        configurable: true,
+        value: [],
+      });
+      document.addEventListener("securitypolicyviolation", (event) => {
+        const violations = (
+          window as Window & { __playwrightCspViolations?: unknown[] }
+        ).__playwrightCspViolations;
+        violations?.push({
+          directive: event.effectiveDirective,
+          blockedURI: event.blockedURI,
+          violatedDirective: event.violatedDirective,
+        });
+      });
+
       // Capture the prior count before app scripts can generate the initial password.
       const currentCallCount = window.sessionStorage.getItem(counterKey);
       const baselineCallCount = Number(currentCallCount ?? "0");
@@ -133,6 +150,23 @@ async function readWebCryptoCallCount(page: Page): Promise<number> {
   return page.evaluate(
     (counterKey) => Number(window.sessionStorage.getItem(counterKey) ?? "0"),
     WEB_CRYPTO_CALL_COUNT_KEY,
+  );
+}
+
+/**
+ * Reads CSP violations captured by the init script installed before application
+ * scripts execute. The list remains in page memory only and is used for test
+ * assertions without logging generated password values.
+ *
+ * @param page - Isolated Chromium page whose init script recorded violations.
+ * @returns CSP violation records captured in the page, or an empty array.
+ */
+async function readCspViolations(page: Page): Promise<unknown[]> {
+  return page.evaluate(
+    () =>
+      (
+        window as Window & { __playwrightCspViolations?: unknown[] }
+      ).__playwrightCspViolations ?? [],
   );
 }
 
@@ -455,6 +489,7 @@ test("copies through the browser Clipboard API and clears confirmation on time",
     },
   );
   expect(clipboardMatchesDisplayedPassword).toBe(true);
+  expect(await readCspViolations(page)).toEqual([]);
 
   // Advance the installed test clock instead of waiting two wall-clock seconds.
   await page.clock.fastForward(COPY_CONFIRMATION_DURATION_MS);

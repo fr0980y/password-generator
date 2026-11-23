@@ -440,8 +440,10 @@ Use GitHub integration to trigger builds and deployments when changes are pushed
   nonces.
 - The root not-found page uses a CSS Module rather than Next.js's default
   inline-styled error markup so that `style-src 'self'` remains practical.
-- Browser enforcement of the deployed policy requires separate Playwright and
-  Cloudflare Pages preview verification.
+- Playwright applies the generated `out/_headers` file through the local static
+  server and verifies response headers and browser CSP enforcement in Chromium.
+- Local HTTP cannot establish HTTPS/HSTS browser enforcement. Deployed response
+  headers and HSTS behavior require separate Cloudflare Pages preview verification.
 
 ---
 

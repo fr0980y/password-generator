@@ -100,14 +100,17 @@ This passing result describes the current Node.js test run, not completion of ev
 
 Playwright is configured to run against the production export in `out/`. The Chromium suite contains the infrastructure smoke test and application workflows in `tests/e2e/application-workflows.spec.ts`. The workflows verify the initial generated password and configuration, browser Web Crypto availability, explicit generation and validation recovery, clipboard writes and timed success feedback, and preferences-only localStorage persistence with a fresh password after reload. The tests use real browser APIs, isolate state using Playwright's per-test browser contexts, and do not log generated passwords.
 
-The build now generates `out/_headers` and Node.js tests verify inline-script
-hash extraction and policy generation. This does not enforce the policy in a
-browser. The following browser checks remain planned:
+The build generates `out/_headers`, and Node.js tests verify inline-script
+hash extraction and policy generation. The local static server applies this
+generated file to root, asset, HTML, and 404 responses. Playwright verifies
+the response headers, CSP enforcement, same-origin resources, custom 404
+behavior, password generation, and clipboard copying. Local HTTP still does not
+exercise HSTS browser enforcement. The following browser checks remain planned:
 
 - Clipboard permission failure and manual-copy fallback.
 - Service-worker registration, precaching, offline reload, and update behavior.
 - Responsive layout and browser compatibility.
-- Network behavior and security-header/CSP enforcement.
+- Deployed Cloudflare HTTPS/HSTS and remaining production preview behavior.
 - PWA installation where supported.
 
 The browser suite does not yet cover all browser layout, permission-failure, service-worker, offline, or deployed-header behavior. jsdom remains useful for fast component tests but does not replace these real-browser checks.
@@ -483,9 +486,9 @@ Use browser developer tools or automated network inspection to verify that:
 - [ ] Password generation causes no network requests.
 - [ ] Configuration changes cause no network requests.
 - [ ] Copying a password causes no application network request.
-- [ ] No analytics or tracking requests occur.
-- [ ] No advertising requests occur.
-- [ ] No unnecessary third-party runtime requests occur.
+- [x] No analytics or tracking requests occur.
+- [x] No advertising requests occur.
+- [x] No unnecessary third-party runtime requests occur.
 
 Normal requests for application delivery and updates are expected.
 
@@ -519,9 +522,12 @@ Verify that:
 - [ ] The policy does not permit unnecessary external script execution.
 - [ ] The application works under the deployed security policy.
 
-The static build generates Cloudflare Pages headers and tests the hash
-generator, but the checks above remain incomplete until browser enforcement and
-deployed response headers are verified.
+The static build generates Cloudflare Pages headers, and Node.js tests verify
+the hash generator. Playwright applies `out/_headers` through the local static
+server, checks the response headers and CSP directives, and captures CSP
+violations before application scripts execute. These checks cover browser
+enforcement in local Chromium; deployed response-header behavior and HTTPS/HSTS
+still require Cloudflare Pages preview verification.
 
 ### 8.7 Service Worker
 

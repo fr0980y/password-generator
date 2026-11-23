@@ -516,9 +516,16 @@ The generated header also includes `X-Content-Type-Options: nosniff`,
 `X-Frame-Options: DENY`, and `Strict-Transport-Security: max-age=31536000`.
 The HSTS value deliberately omits `includeSubDomains` and `preload`.
 
-Automated hash-generation tests and static-export inspection do not establish
-browser enforcement. CSP violation detection, interactive behavior under the
-policy, and deployed Cloudflare response-header verification remain planned.
+Automated hash-generation tests and static-export inspection verify policy
+generation, but browser enforcement is established separately by Playwright:
+the suite captures `securitypolicyviolation` events before application scripts
+execute and verifies hydration, password generation, clipboard copying, static
+resources, and the custom 404 page under the generated policy.
+
+Local testing uses HTTP, so the browser does not enforce HSTS even though it
+receives `Strict-Transport-Security: max-age=31536000`. Manual or automated
+Cloudflare Pages preview verification remains required to confirm the deployed
+HTTPS response and browser behavior.
 
 ---
 
