@@ -91,7 +91,9 @@ Install dependencies:
 npm install
 ```
 
-Start the development server:
+### Development
+
+Start the Next.js development server:
 
 ```bash
 npm run dev
@@ -99,19 +101,31 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-### Production Build
+The development server is for implementation and debugging. It does not reproduce the production static export or the generated Cloudflare Pages security headers.
 
-Create a production build:
+### Production Static Export
+
+Create the production static export and generated Cloudflare Pages headers:
 
 ```bash
 npm run build
 ```
 
-Run the production server:
+This writes the deployable static output to `out/` and generates `out/_headers`. It does not start an application server.
+
+To preview an already-built export locally through the project's static-export server:
 
 ```bash
-npm run start
+npm run preview
 ```
+
+Open [http://127.0.0.1:4173](http://127.0.0.1:4173) in your browser.
+
+The preview command reuses the static server used by the Playwright production-export tests. It is loopback-only, is intended for local verification, and is not the production hosting environment.
+
+### Production Deployment
+
+Deploy the contents and build process output to Cloudflare Pages. Cloudflare Pages is the production static host; no application server or backend is required.
 
 ## Project Status
 

@@ -105,13 +105,21 @@ hash extraction and policy generation. The local static server applies this
 generated file to root, asset, HTML, and 404 responses. Playwright verifies
 the response headers, CSP enforcement, same-origin resources, custom 404
 behavior, password generation, and clipboard copying. Local HTTP still does not
-exercise HSTS browser enforcement. The following browser checks remain planned:
+exercise HSTS browser enforcement. These are automated Chromium checks against
+the actual production static export, not jsdom or Next.js development-server
+checks.
 
+The following browser checks remain manual acceptance work:
+
+- Restore Defaults behavior.
+- Category-enforcement validation at the browser level.
 - Clipboard permission failure and manual-copy fallback.
 - Service-worker registration, precaching, offline reload, and update behavior.
-- Responsive layout and browser compatibility.
+- Responsive layout and real-browser compatibility in Chrome, Edge, Firefox, Safari,
+  Android Chrome, and iOS Safari.
 - Deployed Cloudflare HTTPS/HSTS and remaining production preview behavior.
 - PWA installation where supported.
+- Manual accessibility and screen-reader verification.
 
 The browser suite does not yet cover all browser layout, permission-failure, service-worker, offline, or deployed-header behavior. jsdom remains useful for fast component tests but does not replace these real-browser checks.
 
@@ -350,7 +358,10 @@ These tests should focus on interactions between the custom hook, services, gene
 
 ## 7. End-to-End Testing Strategy
 
-Playwright runs an infrastructure smoke test and core application workflows against the production export. Checked cases below are implemented in Chromium; unchecked cases remain planned.
+Playwright runs an infrastructure smoke test and core application workflows against
+the production static export. Checked cases below are implemented in Chromium;
+unchecked cases remain manual acceptance testing and are not additional missing
+MVP implementation work.
 
 End-to-end tests should verify complete workflows in a real browser environment.
 
@@ -543,9 +554,14 @@ Verify that:
 
 ## 9. Accessibility Testing
 
-Accessibility should be evaluated through automated checks and manual interaction.
+Accessibility is evaluated through a combination of implemented component
+checks and manual interaction. The automated suite checks selected keyboard
+interactions and accessible feedback in jsdom and Chromium workflows where
+applicable.
 
-The current test suite checks selected keyboard interactions and accessible feedback in jsdom. It does not include axe-core or real screen-reader/browser testing; the checks below remain planned.
+The current suite does not include axe-core or real screen-reader/browser testing;
+the checks below remain manual acceptance work. No additional automated
+accessibility dependency is required before deployment or manual testing.
 
 ### 9.1 Automated Accessibility Checks
 
@@ -593,7 +609,10 @@ Verify that:
 
 ## 10. Responsive and Browser Compatibility Testing
 
-The viewport and browser checks in this section are planned. The current test suite does not render the application in a real browser or verify responsive layout.
+The Chromium Playwright suite renders the production static export, but it does
+not currently verify responsive viewport layouts or cross-browser behavior.
+Responsive and cross-browser checks in this section remain manual Phase 10
+acceptance testing.
 
 ### 10.1 Responsive Layouts
 
@@ -659,7 +678,11 @@ Performance testing should focus on practical user experience rather than arbitr
 
 ## 12. Test Environments
 
-The current automated suite runs under Node.js and uses jsdom for selected React tests. The production-build, Pages Preview, and production environments below are planned verification environments, not environments covered by the current automated suite.
+The current automated suite runs under Node.js and uses jsdom for selected React
+tests. Chromium Playwright also runs against the completed static export and
+the generated security configuration. The Cloudflare Pages Preview and production
+deployments below remain manual verification environments; they are not
+substituted for by the local HTTP Playwright server.
 
 ### Development
 
@@ -675,11 +698,13 @@ Used for:
 Used for:
 
 - Static export verification.
-- Production-like browser testing.
+- Automated Chromium production-export testing.
+- CSP and response-header enforcement in the production-like local server.
 - Service worker behavior.
 - Generated security-header file and CSP hash-generation checks.
 
-Browser enforcement of CSP is not yet covered by the local Playwright suite.
+Local HTTP can verify CSP and generated headers in Chromium, but it cannot
+establish deployed HTTPS or HSTS browser behavior.
 
 ### Cloudflare Pages Preview
 
@@ -715,8 +740,11 @@ The currently available project commands are:
 - `npx playwright install chromium` installs the Chromium browser used by Playwright.
 - `npm run test:e2e` builds the production export, then runs the Playwright smoke and workflow tests.
 - `npm run test:e2e:quick` runs Playwright against an already-built export; run `npm run build` first to avoid using stale output.
+- `npm run preview` serves an already-built static export through the existing local static server for manual production-like preview.
 
-Playwright covers the workflows checked in §7; remaining browser scenarios are listed as planned. There is no test-coverage script. `npx tsc --noEmit` runs the TypeScript check.
+Playwright covers the automated workflows checked in §7. Remaining browser,
+device, PWA, offline, and deployed-header scenarios are manual acceptance tests.
+There is no test-coverage script. `npx tsc --noEmit` runs the TypeScript check.
 
 ### Recommended Execution Sequence
 

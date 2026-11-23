@@ -11,8 +11,7 @@
  * `out/_headers` file, using only the small Cloudflare path-rule subset this
  * test server needs. The module exports parser, matcher, and handler factories
  * primarily for focused Node.js tests; running it directly starts the server.
- * For example, run `npm run build`, then
- * `node scripts/serve-static-export.mjs`.
+ * For example, run `npm run build`, then `npm run preview`.
  *
  * This is test infrastructure, not a production server. It binds only to
  * loopback, serves read-only `GET` and `HEAD` requests, and refuses paths

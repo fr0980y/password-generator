@@ -37,18 +37,18 @@ The following principles will guide development:
 
 Development will proceed through the following phases.
 
-| Phase | Description |
-|---|---|
-| 1 | Project Foundation |
-| 2 | PWA Foundation |
-| 3 | Core Types and Configuration Validation |
-| 4 | Password Generation Engine |
-| 5 | Settings Persistence |
-| 6 | Clipboard Service |
-| 7 | User Interface |
-| 8 | Application Integration and Error Handling |
-| 9 | Testing and Security Verification |
-| 10 | Deployment and Release |
+| Phase | Description | Status |
+|---|---|---|
+| 1 | Project Foundation | Completed |
+| 2 | PWA Foundation | Completed |
+| 3 | Core Types and Configuration Validation | Completed |
+| 4 | Password Generation Engine | Completed |
+| 5 | Settings Persistence | Completed |
+| 6 | Clipboard Service | Completed |
+| 7 | User Interface | Completed |
+| 8 | Application Integration and Error Handling | Completed |
+| 9 | Testing and Security Verification | Completed through 9.3.5.4 for automated/static infrastructure verification; remaining acceptance items move to Phase 10 |
+| 10 | Deployment and Release | Remaining |
 
 The phases are ordered by dependency, although some independent tasks may be developed in parallel where practical.
 
@@ -386,21 +386,23 @@ All application functionality works together according to the Functional Require
 
 Verify that the completed application satisfies its functional, architectural, security, privacy, and usability requirements.
 
+**Status:** Completed through the automated and static-infrastructure work covered by **Phase 9.3.5.4**. The implemented Node.js and Playwright suites verify core workflows and production-static security headers, while deployed HTTPS/HSTS, cross-browser PWA behavior, real-device layout, offline operation, clipboard permission failures, and service-worker updates remain manual acceptance work in Phase 10.
+
 ### Tasks
 
 #### Automated Testing
 
-- [ ] Complete generator unit tests.
-- [ ] Complete configuration validation tests.
-- [ ] Complete persistence service tests.
-- [ ] Complete clipboard service tests.
-- [ ] Complete component tests using React Testing Library.
-- [ ] Implement end-to-end tests using Playwright.
-- [ ] Test first-launch behavior.
-- [ ] Test subsequent-launch behavior.
-- [ ] Test settings persistence.
-- [ ] Test generation and clipboard workflows.
-- [ ] Test validation and error handling.
+- [x] Complete generator unit tests.
+- [x] Complete configuration validation tests.
+- [x] Complete persistence service tests.
+- [x] Complete clipboard service tests.
+- [x] Complete component tests using React Testing Library.
+- [x] Implement end-to-end tests using Playwright.
+- [x] Test first-launch behavior.
+- [x] Test subsequent-launch behavior.
+- [x] Test settings persistence.
+- [x] Test generation and clipboard workflows.
+- [x] Test validation and error handling.
 - [ ] Test Restore Defaults behavior.
 - [ ] Test responsive layouts.
 - [ ] Test offline startup and operation.
@@ -409,19 +411,19 @@ Verify that the completed application satisfies its functional, architectural, s
 
 #### Security and Privacy Verification
 
-- [ ] Verify that password generation occurs entirely in the browser.
-- [ ] Verify that Web Crypto is used for all random generation.
-- [ ] Verify that `Math.random()` is not used by the generation implementation.
-- [ ] Verify rejection sampling and secure shuffling.
-- [ ] Verify that generated passwords are not written to localStorage.
-- [ ] Verify that passwords are not included in logs or error messages.
-- [ ] Verify that the application makes no password-transmitting network requests.
-- [ ] Verify that no analytics or tracking code is present.
-- [ ] Verify that no unnecessary external runtime requests occur.
-- [ ] Review third-party dependencies.
-- [ ] Configure and verify an appropriate Content Security Policy.
-- [ ] Verify that clipboard functionality requires explicit user action.
-- [ ] Review the application against the Security & Privacy Specification.
+- [x] Verify that password generation occurs entirely in the browser.
+- [x] Verify that Web Crypto is used for all random generation.
+- [x] Verify that `Math.random()` is not used by the generation implementation.
+- [x] Verify rejection sampling and secure shuffling.
+- [x] Verify that generated passwords are not written to localStorage.
+- [x] Verify that passwords are not included in logs or error messages.
+- [x] Verify that the application makes no password-transmitting network requests.
+- [x] Verify that no analytics or tracking code is present.
+- [x] Verify that no unnecessary external runtime requests occur.
+- [x] Review third-party dependencies.
+- [x] Configure and verify an appropriate Content Security Policy.
+- [x] Verify that clipboard functionality requires explicit user action.
+- [x] Review the application against the Security & Privacy Specification.
 
 #### Browser Compatibility
 
@@ -436,14 +438,18 @@ Also verify relevant mobile browser and PWA behavior where practical.
 
 ### Deliverables
 
-- Automated test suite.
-- Security and privacy verification results.
-- Browser compatibility results.
-- Documented defects and resolutions.
+- [x] Automated test suite.
+- [x] Automated security and privacy verification results.
+- [ ] Browser compatibility and real-device results.
+- [ ] Documented defects and resolutions.
 
 ### Completion Criteria
 
-All critical functionality passes testing, identified security and privacy requirements are verified, and no unresolved critical defects remain.
+Core automated critical functionality passes testing, identified security and privacy requirements are verified by the implemented suites, and no unresolved critical implementation defects remain. Remaining browser, device, PWA, and deployed-environment verification is Phase 10 manual acceptance testing.
+
+#### Phase 9.3.5.4 completion note
+
+The static-export regression work completed in Phase 9.3.5.4 includes generated Cloudflare `_headers`, inline-script CSP hash generation, local static-server header enforcement, browser CSP violation capture, and 400/404/405/500 response-header coverage. The automated Chromium suite now exercises the production export under that local production-like policy. Local HTTP cannot establish deployed HTTPS/HSTS behavior.
 
 ---
 
@@ -452,6 +458,8 @@ All critical functionality passes testing, identified security and privacy requi
 ### Objective
 
 Prepare and deploy the production application through the existing GitHub and Cloudflare Pages integration.
+
+**Status:** Remaining work. Phase 10 consists of confirming Cloudflare Pages build and hosting, verifying the deployed HTTPS and PWA behavior, performing manual acceptance tests on real browsers and devices, and publishing the initial release.
 
 ### Tasks
 
