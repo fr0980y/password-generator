@@ -332,6 +332,10 @@ All primary configuration controls should be visible on the main screen.
 
 Use one numeric input at every viewport size, with a decrement button
 immediately to its left and an increment button immediately to its right.
+The three controls fill the available width: keep the buttons fixed and equal
+in size at the far edges, let the input flex between them, and center the value
+inside the input. On initial focus, select the entire value so typing replaces
+it; after that selection, preserve normal cursor-based editing.
 
 Requirements:
 

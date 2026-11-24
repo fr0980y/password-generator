@@ -272,6 +272,8 @@ Verify:
 
 - The password length control displays its current value.
 - The same numeric input and adjacent decrement/increment buttons are visible at mobile, intermediate, and desktop widths.
+- Decrement appears before the input and increment after it; the row fills its parent width, the input flexes, and its number is centered.
+- Initial mouse and keyboard focus selects the entire number, typing replaces it, and cursor movement allows partial edits afterward.
 - The input starts at 20, has minimum 8, step 1, and maximum 40 by default or 128 when extended lengths are enabled; helper text reflects the active maximum.
 - Single-digit and multi-digit valid values commit on Enter or blur and persist through localStorage.
 - Empty, incomplete, and out-of-range values remain temporary while editing and restore the last valid value on commit.

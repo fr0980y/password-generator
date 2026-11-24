@@ -637,6 +637,38 @@ test("numeric length editing validates drafts, steps by one, persists valid chan
   expect(await readWebCryptoCallCount(page)).toBe(callsBeforeChanges);
 });
 
+test("selects the full length on pointer and keyboard focus while preserving cursor editing", async ({
+  page,
+}) => {
+  await openApplication(page);
+
+  const lengthInput = page.getByRole("spinbutton", {
+    name: "Password Length",
+  });
+  const decrement = page.getByRole("button", {
+    name: "Decrease password length",
+  });
+  const extendedLengths = page.getByRole("checkbox", {
+    name: "Enable extended password lengths",
+  });
+
+  await expect(lengthInput).toHaveValue("20");
+  await lengthInput.click();
+  await page.keyboard.type("31");
+  await expect(lengthInput).toHaveValue("31");
+  await lengthInput.press("Enter");
+
+  await extendedLengths.check();
+  await decrement.focus();
+  await page.keyboard.press("Tab");
+  await expect(lengthInput).toBeFocused();
+  await page.keyboard.type("12");
+  await expect(lengthInput).toHaveValue("12");
+  await page.keyboard.press("ArrowLeft");
+  await page.keyboard.type("0");
+  await expect(lengthInput).toHaveValue("102");
+});
+
 test("password actions use the responsive layouts inside the password card", async ({
   page,
 }) => {
@@ -658,11 +690,49 @@ test("password actions use the responsive layouts inside the password card", asy
   const incrementButton = page.getByRole("button", {
     name: "Increase password length",
   });
+  const lengthControl = lengthInput.locator("xpath=..");
+  const lengthControlParent = lengthControl.locator("xpath=..");
+
+  const expectLengthControlLayout = async () => {
+    const childOrder = await lengthControl.evaluate((element) =>
+      Array.from(element.children, (child) => child.tagName),
+    );
+    expect(childOrder).toEqual(["BUTTON", "INPUT", "BUTTON"]);
+
+    const controlBox = await lengthControl.boundingBox();
+    const parentBox = await lengthControlParent.boundingBox();
+    const decrementBox = await decrementButton.boundingBox();
+    const inputBox = await lengthInput.boundingBox();
+    const incrementBox = await incrementButton.boundingBox();
+    expect(controlBox).not.toBeNull();
+    expect(parentBox).not.toBeNull();
+    expect(decrementBox).not.toBeNull();
+    expect(inputBox).not.toBeNull();
+    expect(incrementBox).not.toBeNull();
+    expect(controlBox!.x).toBeCloseTo(parentBox!.x, 0);
+    expect(controlBox!.width).toBeCloseTo(parentBox!.width, 0);
+    expect(decrementBox!.x).toBeCloseTo(controlBox!.x, 0);
+    expect(
+      incrementBox!.x + incrementBox!.width,
+    ).toBeCloseTo(controlBox!.x + controlBox!.width, 0);
+    expect(inputBox!.x).toBeGreaterThan(decrementBox!.x + decrementBox!.width);
+    expect(incrementBox!.x).toBeGreaterThan(inputBox!.x + inputBox!.width);
+    expect(decrementBox!.width).toBe(incrementBox!.width);
+    expect(decrementBox!.height).toBe(incrementBox!.height);
+
+    const inputStyle = await lengthInput.evaluate((input) => {
+      const style = window.getComputedStyle(input);
+      return { flexGrow: style.flexGrow, textAlign: style.textAlign };
+    });
+    expect(inputStyle.flexGrow).toBe("1");
+    expect(inputStyle.textAlign).toBe("center");
+  };
 
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(lengthInput).toBeVisible();
   await expect(decrementButton).toBeVisible();
   await expect(incrementButton).toBeVisible();
+  await expectLengthControlLayout();
   const narrowGenerateBox = await generateButton.boundingBox();
   const narrowCopyBox = await copyButton.boundingBox();
   expect(narrowGenerateBox).not.toBeNull();
@@ -674,6 +744,7 @@ test("password actions use the responsive layouts inside the password card", asy
   await expect(lengthInput).toBeVisible();
   await expect(decrementButton).toBeVisible();
   await expect(incrementButton).toBeVisible();
+  await expectLengthControlLayout();
   const intermediateGenerateBox = await generateButton.boundingBox();
   const intermediateCopyBox = await copyButton.boundingBox();
   expect(intermediateGenerateBox).not.toBeNull();
@@ -688,6 +759,7 @@ test("password actions use the responsive layouts inside the password card", asy
   await expect(lengthInput).toBeVisible();
   await expect(decrementButton).toBeVisible();
   await expect(incrementButton).toBeVisible();
+  await expectLengthControlLayout();
   const wideGenerateBox = await generateButton.boundingBox();
   const wideCopyBox = await copyButton.boundingBox();
   expect(wideGenerateBox).not.toBeNull();

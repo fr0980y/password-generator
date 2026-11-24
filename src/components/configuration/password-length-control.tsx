@@ -140,7 +140,7 @@ export function PasswordLengthControl({
           onClick={() => stepLength(-1)}
           onBlur={(event) => {
             if (!focusRemainsInControl(event.relatedTarget)) {
-              commitLength(inputValue);
+              commitLength(inputValueRef.current);
             }
           }}
         >
@@ -164,6 +164,7 @@ export function PasswordLengthControl({
             inputValueRef.current = event.currentTarget.value;
             setInputValue(inputValueRef.current);
           }}
+          onFocus={(event) => event.currentTarget.select()}
           onBlur={(event) => {
             if (!focusRemainsInControl(event.relatedTarget)) {
               commitLength(inputValueRef.current);
