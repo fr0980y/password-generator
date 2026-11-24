@@ -383,15 +383,14 @@ App (page.tsx)
 └── PasswordGenerator
     │
     ├── PasswordDisplay
-    │   └── CopyButton
+    ├── GenerateButton
+    ├── CopyButton
     │
     ├── PasswordConfiguration
     │   ├── PasswordLengthControl
     │   ├── CharacterCategoryControls
     │   ├── AmbiguousCharacterToggle
     │   └── CategoryEnforcementToggle
-    │
-    ├── GenerateButton
     │
     ├── ConfigurationValidation
     │
@@ -524,6 +523,7 @@ interface PasswordConfiguration {
   symbols: boolean;
   excludeAmbiguous: boolean;
   requireEachCategory: boolean;
+  enableExtendedPasswordLengths: boolean;
 }
 ```
 
@@ -541,9 +541,13 @@ const DEFAULT_CONFIGURATION = {
   numbers: true,
   symbols: true,
   excludeAmbiguous: false,
-  requireEachCategory: true
+  requireEachCategory: true,
+  enableExtendedPasswordLengths: false
 };
 ```
+
+The standard maximum is 40 characters. Enabling `enableExtendedPasswordLengths`
+allows lengths up to 128 characters.
 
 ### 8.3 Validation
 
@@ -563,6 +567,10 @@ The UI uses this result for immediate feedback.
 The generation module independently validates its input before generating a password.
 
 This provides a consistent validation mechanism and protects the generation module from invalid inputs regardless of where they originate.
+
+The minimum length is 8. The active maximum is 40 unless
+`enableExtendedPasswordLengths` is `true`, in which case it is 128. Other
+category-selection and require-each-category rules remain unchanged.
 
 ### 8.4 Configuration Changes
 
@@ -606,7 +614,7 @@ Example:
 
 ```json
 {
-  "version": 1,
+  "version": 2,
   "settings": {
     "length": 20,
     "uppercase": true,
@@ -614,12 +622,15 @@ Example:
     "numbers": true,
     "symbols": true,
     "excludeAmbiguous": false,
-    "requireEachCategory": true
+    "requireEachCategory": true,
+    "enableExtendedPasswordLengths": false
   }
 }
 ```
 
-Future configuration changes can be handled through schema versioning and migration logic.
+Schema version 2 includes the extended-length preference. The previous schema is
+unsupported and falls back to current defaults; no backward-compatibility
+migration is implemented for this unreleased project.
 
 ### 9.4 Storage Failure Handling
 

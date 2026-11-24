@@ -58,6 +58,14 @@ export default function Home() {
           <PasswordDisplay password={password} />
 
           <div className={styles.passwordActions}>
+            <GenerateButton
+              onGenerate={onGenerate}
+              disabled={
+                !isInitialized ||
+                webCryptoCapability !== "available" ||
+                !configurationValidation.isValid
+              }
+            />
             <CopyButton
               onCopy={onCopy}
               disabled={!isInitialized || password === null}
@@ -80,17 +88,6 @@ export default function Home() {
             onRestoreDefaults={onRestoreDefaults}
           />
         </section>
-
-        <div className={styles.generateAction}>
-          <GenerateButton
-            onGenerate={onGenerate}
-            disabled={
-              !isInitialized ||
-              webCryptoCapability !== "available" ||
-              !configurationValidation.isValid
-            }
-          />
-        </div>
 
         <div
           className={styles.feedbackRegion}

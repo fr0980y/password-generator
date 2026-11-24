@@ -140,6 +140,7 @@ The following values may be stored locally:
 - Symbols enabled/disabled.
 - Ambiguous-character exclusion.
 - Required-category enforcement.
+- Whether extended password lengths are enabled.
 
 No other user information is necessary for the MVP.
 
@@ -365,12 +366,15 @@ If Web Crypto is unavailable or fails:
 The application may use localStorage exclusively for password configuration preferences.
 
 The stored structure must be versioned.
+The current version is 2 and includes `enableExtendedPasswordLengths` alongside
+the other configuration preferences. Version 1 is unsupported and falls back
+to current defaults without migration.
 
 Example:
 
 ```json
 {
-  "version": 1,
+  "version": 2,
   "settings": {
     "length": 20,
     "uppercase": true,
@@ -378,7 +382,8 @@ Example:
     "numbers": true,
     "symbols": true,
     "excludeAmbiguous": false,
-    "requireEachCategory": true
+    "requireEachCategory": true,
+    "enableExtendedPasswordLengths": false
   }
 }
 ```

@@ -45,7 +45,7 @@ import {
 export const SETTINGS_STORAGE_KEY = "password-generator.settings";
 
 /** Schema version for the current versioned settings wrapper. */
-export const SETTINGS_STORAGE_VERSION = 1;
+export const SETTINGS_STORAGE_VERSION = 2;
 
 /**
  * Minimal localStorage-compatible interface used for reads and writes.
@@ -142,7 +142,7 @@ function resolveStorage(storage?: StorageLike): StorageLike | null {
  * Converts an untrusted JSON value into a supported password configuration.
  *
  * This function checks object shape and property presence before constructing
- * a new object containing only the seven approved fields. Unknown properties
+ * a new object containing only the eight approved fields. Unknown properties
  * are intentionally discarded, and the resulting value is passed to the shared
  * password-configuration validator before it is returned to callers.
  *
@@ -168,6 +168,7 @@ function constructSettings(settings: unknown): PasswordConfiguration | null {
     "symbols",
     "excludeAmbiguous",
     "requireEachCategory",
+    "enableExtendedPasswordLengths",
   ] as const;
 
   // `hasOwnProperty` avoids accepting inherited properties in an object that
@@ -183,7 +184,8 @@ function constructSettings(settings: unknown): PasswordConfiguration | null {
     typeof candidate.numbers !== "boolean" ||
     typeof candidate.symbols !== "boolean" ||
     typeof candidate.excludeAmbiguous !== "boolean" ||
-    typeof candidate.requireEachCategory !== "boolean"
+    typeof candidate.requireEachCategory !== "boolean" ||
+    typeof candidate.enableExtendedPasswordLengths !== "boolean"
   ) {
     return null;
   }
@@ -198,6 +200,7 @@ function constructSettings(settings: unknown): PasswordConfiguration | null {
     symbols: candidate.symbols,
     excludeAmbiguous: candidate.excludeAmbiguous,
     requireEachCategory: candidate.requireEachCategory,
+    enableExtendedPasswordLengths: candidate.enableExtendedPasswordLengths,
   };
 }
 
@@ -222,6 +225,7 @@ function constructPersistedSettings(
       symbols: configuration.symbols,
       excludeAmbiguous: configuration.excludeAmbiguous,
       requireEachCategory: configuration.requireEachCategory,
+      enableExtendedPasswordLengths: configuration.enableExtendedPasswordLengths,
     },
   };
 }
@@ -333,7 +337,7 @@ export function loadSettings(storage?: StorageLike): SettingsLoadResult {
  * Validates and persists a password-generator configuration.
  *
  * The configuration is checked before storage is resolved or serialization
- * occurs. On success, the payload contains only the seven supported preference
+ * occurs. On success, the payload contains only the eight supported preference
  * fields and the current schema version. Storage access and write exceptions
  * are converted to `false` so callers can continue with in-memory settings.
  *

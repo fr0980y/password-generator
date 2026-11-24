@@ -3,7 +3,7 @@
 **Project:** Password Generator  
 **Document Version:** 1.0  
 **Status:** Proposed  
-**Last Updated:** November 20, 2026
+**Last Updated:** November 23, 2026
 
 ## 1. Purpose
 
@@ -83,11 +83,11 @@ The current test command bundles the test entry points with esbuild and runs the
 
 ### 3.1 Implemented and Passing
 
-On November 22, 2026, `npm test` completed successfully: **98 tests passed, 0 failed**. The script builds and runs these eight test files:
+On November 23, 2026, `npm test` completed successfully: **108 tests passed, 0 failed**. The script builds and runs these eight test files:
 
-- `src/features/password-generator/password-generator.validation.test.ts`: configuration validation and approved character sets.
-- `src/features/password-generator/password-generator.test.ts`: generated-password constraints, invalid configuration, controlled Web Crypto failures, rejection sampling, and secure shuffle behavior.
-- `src/services/settings-storage.test.ts`: settings serialization, validation, defaults, and simulated storage failures using an in-memory adapter.
+- `src/features/password-generator/password-generator.validation.test.ts`: configuration validation for the 40-character standard and 128-character extended limits, existing category rules, and approved character sets.
+- `src/features/password-generator/password-generator.test.ts`: generated-password constraints, 128-character extended generation, invalid configuration, controlled Web Crypto failures, rejection sampling, and secure shuffle behavior.
+- `src/services/settings-storage.test.ts`: version-2 settings serialization, extended preference round trips, validation, defaults, no version-1 migration, and simulated storage failures using an in-memory adapter.
 - `src/services/clipboard.test.ts`: Clipboard API forwarding and failure handling using mocked browser globals; it does not access the operating-system clipboard.
 - `src/hooks/use-password-generator.test.tsx`: hook and page initialization, generation, settings behavior, errors, keyboard interaction, and feedback using React Testing Library and jsdom. Web Crypto, storage, and clipboard behavior is controlled or mocked.
 - `src/app/error.test.tsx`: error fallback and recovery interactions using React Testing Library and jsdom.
@@ -98,7 +98,7 @@ This passing result describes the current Node.js test run, not completion of ev
 
 ### 3.2 Playwright Smoke Test and Implemented Browser Workflows
 
-Playwright is configured to run against the production export in `out/`. The Chromium suite contains the infrastructure smoke test and application workflows in `tests/e2e/application-workflows.spec.ts`. The workflows verify the initial generated password and configuration, browser Web Crypto availability, explicit generation and validation recovery, clipboard writes and timed success feedback, and preferences-only localStorage persistence with a fresh password after reload. The tests use real browser APIs, isolate state using Playwright's per-test browser contexts, and do not log generated passwords.
+Playwright is configured to run against the production export in `out/`. The Chromium suite contains the infrastructure smoke test and application workflows in `tests/e2e/application-workflows.spec.ts`. The workflows verify the initial generated password and configuration, in-card actions, slider maximum and clamp behavior for optional extended lengths, responsive button layouts at mobile/intermediate/desktop widths, explicit generation and validation recovery, clipboard writes and timed success feedback, and preferences-only localStorage persistence with an extended-length preference and a length above 40 restored after reload. The tests use real browser APIs, isolate state using Playwright's per-test browser contexts, and do not log generated passwords.
 
 The build generates `out/_headers`, and Node.js tests verify inline-script
 hash extraction and policy generation. The local static server applies this
@@ -111,12 +111,11 @@ checks.
 
 The following browser checks remain manual acceptance work:
 
-- Restore Defaults behavior.
 - Category-enforcement validation at the browser level.
 - Clipboard permission failure and manual-copy fallback.
 - Service-worker registration, precaching, offline reload, and update behavior.
-- Responsive layout and real-browser compatibility in Chrome, Edge, Firefox, Safari,
-  Android Chrome, and iOS Safari.
+- Cross-browser and real-device layout and compatibility in Chrome, Edge, Firefox,
+  Safari, Android Chrome, and iOS Safari.
 - Deployed Cloudflare HTTPS/HSTS and remaining production preview behavior.
 - PWA installation where supported.
 - Manual accessibility and screen-reader verification.
@@ -148,9 +147,11 @@ Test the centralized configuration validation module.
 | UT-005 | Only symbols enabled | Valid configuration |
 | UT-006 | No categories enabled | Invalid configuration |
 | UT-007 | Minimum password length | Valid configuration when other rules are satisfied |
-| UT-008 | Maximum password length | Valid configuration |
+| UT-008 | Length 40 with extended lengths disabled | Valid configuration |
+| UT-008a | Length 41 with extended lengths disabled | Invalid configuration |
+| UT-008b | Length 128 with extended lengths enabled | Valid configuration |
 | UT-009 | Length below minimum | Invalid configuration |
-| UT-010 | Length above maximum | Invalid configuration |
+| UT-010 | Length 129 with extended lengths enabled | Invalid configuration |
 | UT-011 | Length smaller than selected category count with enforcement enabled | Invalid configuration |
 | UT-012 | Length smaller than selected category count with enforcement disabled | Valid configuration if all other rules are satisfied |
 | UT-013 | Invalid length data type | Invalid configuration |
@@ -186,7 +187,7 @@ Verify the generation algorithm independently of React and the user interface.
 |---|---|---|
 | UT-030 | Generate password with default settings | Valid 20-character password |
 | UT-031 | Generate minimum-length password | Correctly generates 8 characters |
-| UT-032 | Generate maximum-length password | Correctly generates 128 characters |
+| UT-032 | Generate extended maximum-length password | Correctly generates 128 characters when enabled |
 | UT-033 | All categories enabled | Output uses only approved character sets |
 | UT-034 | Single category enabled | Output contains only that category |
 | UT-035 | Multiple categories enabled | Output contains only selected categories |
@@ -223,7 +224,7 @@ Do not attempt to prove cryptographic security through statistical distribution 
 | Test ID | Scenario | Expected Result |
 |---|---|---|
 | UT-050 | No saved settings | Defaults are returned |
-| UT-051 | Valid saved settings | Saved configuration is restored |
+| UT-051 | Saved extended-length setting and length above 40 | Saved configuration is restored |
 | UT-052 | Save settings | Correct versioned structure is stored |
 | UT-053 | Reset settings | Defaults are persisted |
 | UT-054 | Corrupt JSON | Application recovers using defaults |
@@ -270,6 +271,9 @@ Verify:
 Verify:
 
 - The password length control displays its current value.
+- The slider maximum and helper text show 40 by default and 128 when extended lengths are enabled.
+- Disabling extended lengths while the current length exceeds 40 clamps it to 40.
+- Restore Defaults disables extended lengths and restores length 20.
 - Changing length updates configuration.
 - Each character-category checkbox updates independently.
 - Ambiguous-character exclusion updates configuration.
@@ -281,6 +285,8 @@ Verify:
 
 Verify:
 
+- Generate and Copy are inside the password card directly below the password field.
+- There is no separate Generate button below the configuration.
 - The button invokes password generation.
 - A valid configuration permits generation.
 - An invalid configuration prevents generation.
@@ -369,6 +375,8 @@ End-to-end tests should verify complete workflows in a real browser environment.
 
 - [x] Open the application with no previously saved settings.
 - [x] Verify default settings are loaded.
+- [x] Verify extended lengths are disabled and the slider maximum is 40.
+- [x] Verify Generate and Copy are inside the password card and no duplicate Generate action exists.
 - [x] Verify a password is generated automatically.
 - [x] Verify the password has the expected default length.
 - [x] Verify all default character categories are enabled.
@@ -377,8 +385,10 @@ End-to-end tests should verify complete workflows in a real browser environment.
 ### 7.2 Subsequent Launch
 
 - [x] Change configuration settings.
+- [x] Enable extended lengths and select a length above 40.
 - [x] Reload the application.
 - [x] Verify settings are restored.
+- [x] Verify extended lengths remain enabled and the length above 40 is retained.
 - [x] Verify a fresh password is generated.
 - [x] Verify the previous password is not restored.
 
@@ -387,6 +397,8 @@ End-to-end tests should verify complete workflows in a real browser environment.
 - [x] Change password length.
 - [x] Change character categories.
 - [x] Change ambiguous-character exclusion.
+- [x] Enable extended lengths and verify the slider maximum changes to 128.
+- [x] Disable extended lengths and verify the maximum changes to 40 and an over-limit length clamps to 40.
 - [ ] Change category enforcement.
 - [x] Verify the displayed password remains unchanged while settings are modified.
 - [x] Select Generate Password.
@@ -403,10 +415,10 @@ End-to-end tests should verify complete workflows in a real browser environment.
 
 ### 7.5 Restore Defaults Workflow
 
-- [ ] Change multiple configuration settings.
+- [x] Change configuration settings, including extended lengths and a length above 40.
 - [ ] Generate a password.
-- [ ] Select Restore Defaults.
-- [ ] Verify all settings return to defaults.
+- [x] Select Restore Defaults.
+- [x] Verify extended lengths are disabled and the length returns to 20.
 - [ ] Verify the displayed password remains unchanged.
 - [ ] Reload the application.
 - [ ] Verify defaults remain saved.
@@ -609,10 +621,9 @@ Verify that:
 
 ## 10. Responsive and Browser Compatibility Testing
 
-The Chromium Playwright suite renders the production static export, but it does
-not currently verify responsive viewport layouts or cross-browser behavior.
-Responsive and cross-browser checks in this section remain manual Phase 10
-acceptance testing.
+The Chromium production-export suite verifies stacked, equal-width, and 2:1 button
+layouts at representative narrow, intermediate, and desktop viewport widths.
+Cross-browser and real-device behavior remains manual Phase 10 acceptance testing.
 
 ### 10.1 Responsive Layouts
 

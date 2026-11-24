@@ -15,6 +15,10 @@
  * ```
  */
 import type { PasswordConfiguration as PasswordConfigurationType } from "../../features/password-generator/password-generator.types";
+import {
+  MAX_PASSWORD_LENGTH,
+  STANDARD_MAX_PASSWORD_LENGTH,
+} from "../../features/password-generator/password-generator.constants";
 import { CharacterCategoryControls } from "./character-category-controls";
 import { PasswordLengthControl } from "./password-length-control";
 import styles from "./password-configuration.module.css";
@@ -50,6 +54,11 @@ export function PasswordConfiguration({
     <div className={styles.configuration}>
       <PasswordLengthControl
         length={configuration.length}
+        maxLength={
+          configuration.enableExtendedPasswordLengths
+            ? MAX_PASSWORD_LENGTH
+            : STANDARD_MAX_PASSWORD_LENGTH
+        }
         onLengthChange={(length) =>
           onConfigurationChange({
             ...configuration,

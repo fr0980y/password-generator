@@ -10,7 +10,7 @@ Password Generator provides a simple, convenient way to generate cryptographical
 
 ### Password Generation
 - Cryptographically secure random password generation using the browser's Web Crypto API.
-- Configurable password length (8–128 characters).
+- Configurable password length (8–40 characters by default, optionally 8–128).
 - Selectable character categories:
   - Uppercase letters (A–Z)
   - Lowercase letters (a–z)
@@ -18,6 +18,7 @@ Password Generator provides a simple, convenient way to generate cryptographical
   - Symbols
 - Option to exclude commonly confused characters.
 - Option to require at least one character from each selected category.
+- Optional extended password lengths up to 128 characters.
 
 ### Convenience
 - One-click password generation.

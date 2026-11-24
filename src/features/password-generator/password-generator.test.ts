@@ -87,6 +87,19 @@ test("generates exactly the configured password length", () => {
   });
 });
 
+test("generates an extended password without changing the generation algorithm", () => {
+  withCrypto(() => 0, () => {
+    const password = generatePassword(
+      configuration({
+        length: 128,
+        enableExtendedPasswordLengths: true,
+      }),
+    );
+
+    assert.equal(password.length, 128);
+  });
+});
+
 test("represents every enabled category when category enforcement is enabled", () => {
   withCrypto(() => 0, () => {
     const password = generatePassword(configuration());

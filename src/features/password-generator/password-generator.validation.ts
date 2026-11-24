@@ -1,6 +1,7 @@
 import {
   MAX_PASSWORD_LENGTH,
   MIN_PASSWORD_LENGTH,
+  STANDARD_MAX_PASSWORD_LENGTH,
 } from "./password-generator.constants";
 import type {
   PasswordConfiguration,
@@ -23,16 +24,29 @@ export function validatePasswordConfiguration(
   }
 
   if (
+    typeof configuration.excludeAmbiguous !== "boolean" ||
+    typeof configuration.requireEachCategory !== "boolean" ||
+    typeof configuration.enableExtendedPasswordLengths !== "boolean"
+  ) {
+    errors.push("Configuration options must be boolean values.");
+  }
+
+  const maximumLength =
+    configuration.enableExtendedPasswordLengths === true
+      ? MAX_PASSWORD_LENGTH
+      : STANDARD_MAX_PASSWORD_LENGTH;
+
+  if (
     typeof configuration.length !== "number" ||
     !Number.isInteger(configuration.length)
   ) {
     errors.push("Password length must be a whole number.");
   } else if (
     configuration.length < MIN_PASSWORD_LENGTH ||
-    configuration.length > MAX_PASSWORD_LENGTH
+    configuration.length > maximumLength
   ) {
     errors.push(
-      `Password length must be between ${MIN_PASSWORD_LENGTH} and ${MAX_PASSWORD_LENGTH} characters.`,
+      `Password length must be between ${MIN_PASSWORD_LENGTH} and ${maximumLength} characters.`,
     );
   }
 
@@ -45,13 +59,6 @@ export function validatePasswordConfiguration(
   if (categoryFields.some((value) => typeof value !== "boolean")) {
     errors.push("Character category selections must be boolean values.");
   }
-  if (
-    typeof configuration.excludeAmbiguous !== "boolean" ||
-    typeof configuration.requireEachCategory !== "boolean"
-  ) {
-    errors.push("Configuration options must be boolean values.");
-  }
-
   const enabledCategoryCount = [
     configuration.uppercase,
     configuration.lowercase,

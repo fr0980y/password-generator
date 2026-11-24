@@ -60,7 +60,7 @@ The user should not need to navigate through menus or perform unnecessary steps 
 
 The main interface consists of three primary areas:
 
-- **Generated Password:** A prominent display of the currently generated password.
+- **Generated Password:** A prominent display of the currently generated password with Generate and Copy actions inside its card.
 - **Generation Controls:** Options for password length and character composition.
 - **Actions:** Generate and Copy buttons.
 
@@ -98,6 +98,7 @@ Users can configure:
 - Special characters.
 - Exclusion of ambiguous characters.
 - Requirement to include at least one character from each selected category.
+- Enable extended password lengths to allow up to 128 characters; otherwise the maximum is 40.
 
 ## 6. Password Generation Requirements
 
@@ -105,7 +106,8 @@ Users can configure:
 |---|---|
 | Default length | 20 characters |
 | Minimum length | 8 characters |
-| Maximum length | 128 characters |
+| Standard maximum length | 40 characters |
+| Extended maximum length | 128 characters when enabled |
 | Uppercase letters | Enabled |
 | Lowercase letters | Enabled |
 | Numbers | Enabled |
@@ -139,7 +141,7 @@ When ambiguous-character exclusion is enabled, exclude:
 ### 7.3 Configuration Validation
 
 - At least one character category must remain enabled.
-- Password length must be between 8 and 128 characters.
+- Password length must be between 8 and 40 characters by default, or 8 and 128 when extended lengths are enabled.
 - When category inclusion is required, password length must be sufficient to accommodate at least one character from each selected category.
 - Invalid configurations must prevent generation and provide understandable feedback.
 
@@ -156,7 +158,7 @@ Requirements:
 5. Handle corrupted or outdated settings gracefully.
 6. Never persist generated passwords or password history.
 7. Never transmit settings to external services.
-8. Version the stored settings structure to accommodate future changes and migrations.
+8. Version the stored settings structure to identify the supported preference schema.
 
 Only non-sensitive configuration preferences may be persisted.
 
@@ -238,6 +240,7 @@ The initial release includes:
 
 - Configurable password generation.
 - Adjustable password length.
+- Optional extended password lengths up to 128 characters; disabled by default.
 - Four selectable character categories.
 - Ambiguous-character exclusion.
 - Optional enforcement of selected character categories.

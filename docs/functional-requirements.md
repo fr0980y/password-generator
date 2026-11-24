@@ -92,7 +92,8 @@ The application shall support configurable password lengths.
 **Acceptance criteria:**
 - Default length is 20 characters.
 - Minimum length is 8 characters.
-- Maximum length is 128 characters.
+- Maximum length is 40 characters when extended lengths are disabled.
+- Maximum length is 128 characters when extended lengths are enabled.
 - The generated password contains exactly the configured number of characters.
 
 ### FR-012 — Character Categories
@@ -176,8 +177,9 @@ The application shall preserve the previously displayed password if generation f
 The application shall provide a control for adjusting password length.
 
 **Acceptance criteria:**
-- The control supports values from 8 through 128.
+- The control supports values from 8 through 40 by default and 8 through 128 when extended lengths are enabled.
 - The default value is 20.
+- The slider maximum and helper text reflect the active maximum.
 - Values outside the permitted range cannot be applied.
 
 ### FR-021 — Character Category Controls
@@ -248,6 +250,7 @@ The application shall provide a Restore Defaults action.
 
 **Acceptance criteria:**
 - All configuration settings return to their defined default values.
+- Extended password lengths are disabled and the password length is restored to 20.
 - Restored defaults are saved immediately.
 - The currently displayed password remains unchanged.
 - The user must explicitly select Generate to create a password using the restored settings.
@@ -258,6 +261,18 @@ Configuration settings shall remain independent of the currently displayed passw
 **Acceptance criteria:**
 - Changing configuration does not modify the displayed password.
 - Copy always acts on the currently displayed password, regardless of whether the configuration has changed since it was generated.
+
+### FR-031 — Extended Password Lengths
+The application shall optionally allow password lengths above 40 characters.
+
+**Acceptance criteria:**
+- The "Enable extended password lengths" option is unchecked by default.
+- Its helper text explains that it allows lengths above 40, up to 128 characters.
+- The minimum remains 8 characters in either mode.
+- Enabling extended lengths raises the slider maximum to 128 without changing the selected length.
+- Disabling extended lengths lowers the slider maximum to 40 and clamps any selected length above 40 to 40.
+- Restoring defaults disables extended lengths and restores the length to 20.
+- The setting is persisted with the other password preferences.
 
 ---
 
@@ -324,6 +339,7 @@ The application shall use browser localStorage to persist user preferences.
 
 **Acceptance criteria:**
 - Only configuration preferences are stored.
+- The `enableExtendedPasswordLengths` preference is stored with the configuration.
 - No backend or remote storage is used.
 - Preferences remain available across application launches when browser storage is available.
 
@@ -347,7 +363,7 @@ The application shall version its stored settings structure.
 **Acceptance criteria:**
 - Stored preferences include a schema version.
 - The application can identify incompatible or unsupported stored settings.
-- Future changes can be accommodated through appropriate migration logic.
+- Unsupported previous schemas fall back to current defaults; no compatibility migration is required for this unreleased project.
 
 ### FR-054 — Stored Settings Validation
 The application shall validate stored preferences before applying them.
@@ -475,7 +491,7 @@ The application shall prevent generation when all character categories are disab
 The application shall prevent invalid password lengths.
 
 **Acceptance criteria:**
-- Length cannot be lower than 8 or higher than 128.
+- Length cannot be lower than 8 or higher than the active maximum (40 by default, 128 when extended lengths are enabled).
 - Invalid values are rejected or prevented by the input control.
 - The active configuration remains valid.
 
@@ -565,6 +581,7 @@ The main screen shall provide direct access to password generation and configura
 **Acceptance criteria:**
 - The currently generated password is prominently displayed.
 - Generate and Copy actions are readily accessible.
+- Generate and Copy are colocated directly below the password field inside the password card.
 - All primary configuration controls are visible without navigating to a separate settings screen.
 
 ### FR-082 — Password Presentation

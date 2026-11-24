@@ -25,6 +25,7 @@ const DEFAULT_CONFIGURATION: PasswordConfiguration = {
   symbols: true,
   excludeAmbiguous: false,
   requireEachCategory: true,
+  enableExtendedPasswordLengths: false,
 };
 
 /** The application's success feedback is configured to clear after two seconds. */
@@ -219,6 +220,9 @@ async function readConfiguration(page: Page): Promise<PasswordConfiguration> {
     requireEachCategory: await page
       .getByRole("checkbox", { name: "Require Every Selected Character Type" })
       .isChecked(),
+    enableExtendedPasswordLengths: await page
+      .getByRole("checkbox", { name: "Enable extended password lengths" })
+      .isChecked(),
   };
 }
 
@@ -309,7 +313,7 @@ async function localStorageContainsOnlyPreferences(
     const payload = parsed as Record<string, unknown>;
     if (
       Object.keys(payload).sort().join("|") !== "settings|version" ||
-      payload.version !== 1 ||
+      payload.version !== 2 ||
       typeof payload.settings !== "object" ||
       payload.settings === null ||
       Array.isArray(payload.settings)
@@ -355,6 +359,22 @@ test("initializes with a valid password using browser Web Crypto", async ({
   );
   expect(secureWebCryptoAvailable).toBe(true);
   expect(await readConfiguration(page)).toEqual(DEFAULT_CONFIGURATION);
+  const passwordRegion = page.getByRole("region", { name: "Your Password" });
+  await expect(
+    passwordRegion.getByRole("button", { name: "Generate Password" }),
+  ).toBeVisible();
+  await expect(
+    passwordRegion.getByRole("button", { name: "Copy password" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Generate Password" }),
+  ).toHaveCount(1);
+  const lengthSlider = page.getByRole("slider", { name: "Password Length" });
+  await expect(lengthSlider).toHaveAttribute("max", "40");
+  await expect(
+    page.getByRole("checkbox", { name: "Enable extended password lengths" }),
+  ).not.toBeChecked();
+  await expect(page.getByText("8 to 40 characters")).toBeVisible();
   expect(
     (await readWebCryptoCallCount(page)) > baselineWebCryptoCallCount,
   ).toBe(true);
@@ -451,6 +471,77 @@ test("configuration changes validate without regenerating and govern the next pa
   ).toBe(true);
 });
 
+test("extended lengths update the slider maximum and disabling clamps to 40", async ({
+  page,
+}) => {
+  await openApplication(page);
+
+  const lengthSlider = page.getByRole("slider", { name: "Password Length" });
+  const extendedLengths = page.getByRole("checkbox", {
+    name: "Enable extended password lengths",
+  });
+
+  await expect(lengthSlider).toHaveAttribute("max", "40");
+  await extendedLengths.check();
+  await expect(lengthSlider).toHaveAttribute("max", "128");
+  await expect(lengthSlider).toHaveValue("20");
+
+  for (let step = 0; step < 21; step += 1) {
+    await lengthSlider.press("ArrowRight");
+  }
+  await expect(lengthSlider).toHaveValue("41");
+
+  await extendedLengths.uncheck();
+  await expect(lengthSlider).toHaveAttribute("max", "40");
+  await expect(lengthSlider).toHaveValue("40");
+  await expect(page.getByText("8 to 40 characters")).toBeVisible();
+
+  await page.getByRole("button", { name: "Restore Defaults" }).click();
+  await expect(extendedLengths).not.toBeChecked();
+  await expect(lengthSlider).toHaveValue("20");
+});
+
+test("password actions use the responsive layouts inside the password card", async ({
+  page,
+}) => {
+  await openApplication(page);
+
+  const passwordRegion = page.getByRole("region", { name: "Your Password" });
+  const generateButton = passwordRegion.getByRole("button", {
+    name: "Generate Password",
+  });
+  const copyButton = passwordRegion.getByRole("button", {
+    name: "Copy password",
+  });
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  const narrowGenerateBox = await generateButton.boundingBox();
+  const narrowCopyBox = await copyButton.boundingBox();
+  expect(narrowGenerateBox).not.toBeNull();
+  expect(narrowCopyBox).not.toBeNull();
+  expect(narrowGenerateBox!.y).toBeLessThan(narrowCopyBox!.y);
+  expect(narrowGenerateBox!.width).toBeCloseTo(narrowCopyBox!.width, 0);
+
+  await page.setViewportSize({ width: 640, height: 900 });
+  const intermediateGenerateBox = await generateButton.boundingBox();
+  const intermediateCopyBox = await copyButton.boundingBox();
+  expect(intermediateGenerateBox).not.toBeNull();
+  expect(intermediateCopyBox).not.toBeNull();
+  expect(intermediateGenerateBox!.y).toBe(intermediateCopyBox!.y);
+  expect(intermediateGenerateBox!.width).toBeCloseTo(
+    intermediateCopyBox!.width,
+    0,
+  );
+
+  await page.setViewportSize({ width: 1024, height: 900 });
+  const wideGenerateBox = await generateButton.boundingBox();
+  const wideCopyBox = await copyButton.boundingBox();
+  expect(wideGenerateBox).not.toBeNull();
+  expect(wideCopyBox).not.toBeNull();
+  expect(wideGenerateBox!.y).toBe(wideCopyBox!.y);
+  expect(wideGenerateBox!.width / wideCopyBox!.width).toBeCloseTo(2, 1);
+});
+
 /**
  * Verifies the real Clipboard API and the two-second success-feedback lifecycle.
  *
@@ -510,7 +601,13 @@ test("restores preferences after reload without restoring a password", async ({
   await openApplication(page);
 
   const lengthSlider = page.getByRole("slider", { name: "Password Length" });
-  for (let step = 0; step < 6; step += 1) {
+  const extendedLengths = page.getByRole("checkbox", {
+    name: "Enable extended password lengths",
+  });
+  await extendedLengths.check();
+  await expect(lengthSlider).toHaveAttribute("max", "128");
+  await expect(page.getByText("8 to 128 characters")).toBeVisible();
+  for (let step = 0; step < 26; step += 1) {
     await lengthSlider.press("ArrowRight");
   }
   await page.getByRole("checkbox", { name: "Symbols" }).uncheck();
@@ -519,9 +616,10 @@ test("restores preferences after reload without restoring a password", async ({
     .check();
 
   const changedConfiguration = await readConfiguration(page);
-  expect(changedConfiguration.length).toBe(26);
+  expect(changedConfiguration.length).toBe(46);
   expect(changedConfiguration.symbols).toBe(false);
   expect(changedConfiguration.excludeAmbiguous).toBe(true);
+  expect(changedConfiguration.enableExtendedPasswordLengths).toBe(true);
   const displayedPassword = await readDisplayedPassword(page);
   expect(displayedPassword.length).toBe(DEFAULT_CONFIGURATION.length);
   expect(
@@ -530,7 +628,9 @@ test("restores preferences after reload without restoring a password", async ({
 
   const callsBeforeReload = await readWebCryptoCallCount(page);
   await page.reload();
-  await expect(lengthSlider).toHaveValue("26");
+  await expect(lengthSlider).toHaveValue("46");
+  await expect(lengthSlider).toHaveAttribute("max", "128");
+  await expect(extendedLengths).toBeChecked();
   await expect(page.getByRole("checkbox", { name: "Symbols" })).not.toBeChecked();
   await expect(
     page.getByRole("checkbox", { name: "Exclude Ambiguous Characters" }),
@@ -541,7 +641,9 @@ test("restores preferences after reload without restoring a password", async ({
 
   const restoredConfiguration = await readConfiguration(page);
   const reloadedPassword = await readDisplayedPassword(page);
-  expect(restoredConfiguration.length).toBe(26);
+  expect(restoredConfiguration.length).toBe(46);
+  expect(restoredConfiguration.enableExtendedPasswordLengths).toBe(true);
+  expect(reloadedPassword).toHaveLength(46);
   expect(
     passwordSatisfiesConfiguration(reloadedPassword, restoredConfiguration),
   ).toBe(true);

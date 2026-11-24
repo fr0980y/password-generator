@@ -75,12 +75,11 @@ There is no need for navigation between multiple application pages in the MVP.
 The main screen should contain the following sections, in order:
 
 1. Application header.
-2. Generated password display.
+2. Generated password display with Generate Password and Copy actions inside its card.
 3. Password configuration.
-4. Generate action.
-5. Application feedback.
-6. About/Privacy information.
-7. Footer.
+4. Application feedback.
+5. About/Privacy information.
+6. Footer.
 
 ### 3.2 Conceptual Layout
 
@@ -98,7 +97,7 @@ The main screen should contain the following sections, in order:
 │  │  GeneratedPassword123!                 │  │
 │  └────────────────────────────────────────┘  │
 │                                              │
-│                 [ Copy ]                     │
+│  [       Generate Password       ] [ Copy ]   │
 │                                              │
 ├──────────────────────────────────────────────┤
 │                                              │
@@ -113,10 +112,7 @@ The main screen should contain the following sections, in order:
 │                                              │
 │  [ ] Exclude Ambiguous Characters            │
 │  [✓] Require Every Selected Character Type   │
-│                                              │
-├──────────────────────────────────────────────┤
-│                                              │
-│              [ Generate Password ]           │
+│  [ ] Enable extended password lengths        │
 │                                              │
 ├──────────────────────────────────────────────┤
 │                                              │
@@ -255,7 +251,7 @@ The password display should include:
 
 - A small descriptive label.
 - The generated password.
-- A Copy button.
+- Generate Password and Copy buttons directly below the password field.
 
 ### Visual Requirements
 
@@ -293,7 +289,7 @@ Copy the currently displayed password to the system clipboard.
 
 ### Appearance
 
-Use a clearly identifiable button adjacent to or directly beneath the password display.
+Use a clearly identifiable outlined button directly beneath the password field, beside Generate Password on wider screens.
 
 The button should have sufficient size for comfortable pointer and touch interaction.
 
@@ -339,8 +335,10 @@ Use a slider accompanied by a clearly visible numeric value.
 Requirements:
 
 - Minimum: 8.
-- Maximum: 128.
+- Standard maximum: 40.
+- Optional extended maximum: 128.
 - Default: 20.
+- Show the active maximum in both the slider range and helper text.
 - The current value must always be visible.
 - Users must be able to adjust the value precisely.
 
@@ -387,7 +385,13 @@ The user must explicitly select Generate Password to apply the updated configura
 
 Configuration changes should be saved automatically when possible.
 
-### 8.6 Invalid Configuration
+### 8.6 Extended Password Lengths
+
+Provide an unchecked-by-default option labeled "Enable extended password lengths" with helper text: "Allow passwords longer than 40 characters, up to 128 characters."
+
+When enabled, the slider maximum is 128. When disabled, the maximum is 40; if the selected length exceeds 40 when disabled, reduce it to 40. The minimum remains 8 in either mode.
+
+### 8.7 Invalid Configuration
 
 When the configuration is invalid:
 
@@ -411,11 +415,16 @@ Generate a new password using the current configuration.
 
 ### Appearance
 
-Use a prominent primary button labeled:
+Use a prominent solid-blue primary button labeled:
 
 "Generate Password"
 
 This should be the most visually prominent action after the password display itself.
+
+Place this action inside the password card directly below the password field alongside the outlined Copy button. Both buttons have equal heights and comfortable touch targets. Stack them vertically on narrow mobile screens with Generate first; use equal widths at intermediate widths and an approximately 2:1 Generate-to-Copy width ratio on wider screens.
+
+The current responsive breakpoints are 560px (stacked below; equal widths from
+560px) and 768px (2:1 widths from 768px).
 
 ### Interaction
 

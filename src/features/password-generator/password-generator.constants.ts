@@ -3,7 +3,10 @@ import type { PasswordConfiguration } from "./password-generator.types";
 /** Minimum allowed password length. */
 export const MIN_PASSWORD_LENGTH = 8;
 
-/** Maximum allowed password length. */
+/** Maximum allowed password length when extended lengths are disabled. */
+export const STANDARD_MAX_PASSWORD_LENGTH = 40;
+
+/** Maximum allowed password length when extended lengths are enabled. */
 export const MAX_PASSWORD_LENGTH = 128;
 
 export const UPPERCASE_CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -20,6 +23,7 @@ export const DEFAULT_CONFIGURATION: PasswordConfiguration = {
   symbols: true,
   excludeAmbiguous: false,
   requireEachCategory: true,
+  enableExtendedPasswordLengths: false,
 };
 
 export const AMBIGUOUS_UPPERCASE_CHARACTERS = "IO";

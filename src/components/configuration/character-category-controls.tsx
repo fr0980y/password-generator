@@ -159,7 +159,25 @@ export function CharacterCategoryControls({
             <strong>Require Every Selected Character Type</strong>
             <small>
               Ensure at least one character from each selected category appears.
-              The password may need to be longer.
+            </small>
+          </span>
+        </label>
+
+        <label className={styles.optionLabel}>
+          <input
+            type="checkbox"
+            checked={configuration.enableExtendedPasswordLengths}
+            onChange={(event) =>
+              onConfigurationChange({
+                ...configuration,
+                enableExtendedPasswordLengths: event.currentTarget.checked,
+              })
+            }
+          />
+          <span>
+            <strong>Enable extended password lengths</strong>
+            <small>
+              Allow passwords longer than 40 characters, up to 128 characters.
             </small>
           </span>
         </label>

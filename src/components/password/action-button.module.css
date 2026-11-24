@@ -7,7 +7,10 @@
  * visual emphasis without duplicating interaction behavior.
  */
 .button {
+  width: 100%;
+  min-width: 0;
   min-height: var(--control-height);
+  height: var(--control-height);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -43,7 +46,6 @@
 }
 
 .secondaryButton {
-  min-width: 112px;
   border-color: var(--color-border-strong);
   background: var(--color-surface);
   color: var(--color-accent);

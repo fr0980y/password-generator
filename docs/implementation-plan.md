@@ -3,7 +3,7 @@
 **Project:** Password Generator  
 **Document Version:** 1.0  
 **Status:** Proposed  
-**Last Updated:** November 20, 2026
+**Last Updated:** November 23, 2026
 
 ## 1. Purpose
 
@@ -49,6 +49,7 @@ Development will proceed through the following phases.
 | 8 | Application Integration and Error Handling | Completed |
 | 9 | Testing and Security Verification | Completed through 9.3.5.4 for automated/static infrastructure verification; remaining acceptance items move to Phase 10 |
 | 10 | Deployment and Release | Remaining |
+| 11 | Password Actions and Extended Lengths | Completed |
 
 The phases are ordered by dependency, although some independent tasks may be developed in parallel where practical.
 
@@ -403,7 +404,7 @@ Verify that the completed application satisfies its functional, architectural, s
 - [x] Test settings persistence.
 - [x] Test generation and clipboard workflows.
 - [x] Test validation and error handling.
-- [ ] Test Restore Defaults behavior.
+- [x] Test Restore Defaults behavior.
 - [ ] Test responsive layouts.
 - [ ] Test offline startup and operation.
 - [ ] Test PWA installation where supported.
@@ -486,6 +487,35 @@ Prepare and deploy the production application through the existing GitHub and Cl
 ### Completion Criteria
 
 The application is deployed successfully, accessible over HTTPS, installable where supported, and fully functional under the production configuration.
+
+### Phase 11 — Password Actions and Extended Lengths
+
+**Status:** Completed
+
+#### Objective
+
+Keep the primary password actions with the displayed password and provide an
+optional, persisted setting for password lengths above the standard 40-character
+maximum.
+
+#### Completed Tasks
+
+- [x] Move Generate Password into the password card beside Copy.
+- [x] Apply stacked narrow-mobile, equal-width intermediate, and 2:1 wider-screen button layouts.
+- [x] Set the default password length to 20 and standard maximum to 40.
+- [x] Add the disabled-by-default extended-length setting with a maximum of 128.
+- [x] Clamp the selected length to 40 when extended lengths are disabled.
+- [x] Validate both length modes while preserving existing category and generation behavior.
+- [x] Persist the setting using storage schema version 2 without a version-1 migration.
+- [x] Add validation, hook/UI, persistence, and production-export browser tests.
+- [x] Update requirements, architecture, security, UI, and test documentation.
+
+#### Completion Criteria
+
+The new setting controls the slider maximum and validation limit, is restored
+from local preferences, and never causes generated passwords to be persisted.
+The existing Web Crypto generation algorithm and failure behavior remain
+unchanged.
 
 ---
 

@@ -924,6 +924,38 @@ test("valid changes persist and invalid changes remain in memory without saving"
   assert.equal(storage.writeCount, 1);
 });
 
+test("disabling extended lengths clamps the selected length to 40", async () => {
+  const { result } = testingLibrary.renderHook(() => usePasswordGenerator());
+  await waitForInitialization(() => result.current.isInitialized);
+
+  testingLibrary.act(() => {
+    result.current.onConfigurationChange(
+      configuration({
+        length: 64,
+        enableExtendedPasswordLengths: true,
+      }),
+    );
+  });
+  assert.equal(result.current.configuration.length, 64);
+
+  testingLibrary.act(() => {
+    result.current.onConfigurationChange(
+      configuration({
+        length: 64,
+        enableExtendedPasswordLengths: false,
+      }),
+    );
+  });
+
+  assert.equal(result.current.configuration.length, 40);
+  assert.equal(result.current.configuration.enableExtendedPasswordLengths, false);
+  assert.equal(result.current.configurationValidation.isValid, true);
+  assert.equal(
+    JSON.parse(storage.values.get(SETTINGS_STORAGE_KEY) ?? "null").settings.length,
+    40,
+  );
+});
+
 test("restoring defaults preserves the password and reports persistence status", async () => {
   const { result } = testingLibrary.renderHook(() => usePasswordGenerator());
   await waitForInitialization(() => result.current.isInitialized);
@@ -1323,6 +1355,53 @@ test("page supports keyboard workflow, action guards, and accessible feedback", 
     assert.ok(!copyButton.disabled, "Copy stayed disabled after password generation.");
   });
 
+  const passwordRegion = testingLibrary.screen.getByRole("region", {
+    name: "Your Password",
+  });
+  assert.ok(passwordRegion.contains(generateButton));
+  assert.ok(passwordRegion.contains(copyButton));
+  assert.equal(
+    testingLibrary.screen.getAllByRole("button", {
+      name: "Generate Password",
+    }).length,
+    1,
+  );
+
+  const extendedLengthsControl = testingLibrary.screen.getByRole("checkbox", {
+    name: /^Enable extended password lengths/,
+  });
+  const lengthSliderControl = testingLibrary.screen.getByRole("slider", {
+    name: "Password Length",
+  });
+  if (
+    !(extendedLengthsControl instanceof dom.window.HTMLInputElement) ||
+    !(lengthSliderControl instanceof dom.window.HTMLInputElement)
+  ) {
+    throw new Error("The extended-length checkbox or length slider is missing.");
+  }
+  const extendedLengths = extendedLengthsControl;
+  const lengthSlider = lengthSliderControl;
+  assert.equal(extendedLengths.checked, false);
+  assert.equal(lengthSlider.max, "40");
+  assert.ok(testingLibrary.screen.getByText("8 to 40 characters"));
+
+  await user.click(extendedLengths);
+  assert.equal(lengthSlider.max, "128");
+  assert.equal(lengthSlider.value, "20");
+  testingLibrary.fireEvent.change(lengthSlider, { target: { value: "41" } });
+  assert.equal(lengthSlider.value, "41");
+  await user.click(extendedLengths);
+  assert.equal(lengthSlider.max, "40");
+  assert.equal(lengthSlider.value, "40");
+
+  await user.click(extendedLengths);
+  assert.equal(lengthSlider.max, "128");
+  testingLibrary.fireEvent.change(lengthSlider, { target: { value: "41" } });
+  await user.click(requireButton("Restore Defaults"));
+  assert.equal(extendedLengths.checked, false);
+  assert.equal(lengthSlider.max, "40");
+  assert.equal(lengthSlider.value, "20");
+
   const initialPassword = displayedPasswordText();
   assert.ok(initialPassword.length === DEFAULT_CONFIGURATION.length);
 
@@ -1332,12 +1411,6 @@ test("page supports keyboard workflow, action guards, and accessible feedback", 
   assert.ok(feedbackRegion, "The application feedback region is missing.");
   assert.equal(feedbackRegion.getAttribute("aria-live"), "polite");
 
-  const lengthSlider = testingLibrary.screen.queryByRole("slider", {
-    name: "Password Length",
-  });
-  if (!(lengthSlider instanceof dom.window.HTMLInputElement)) {
-    throw new Error("The labeled password-length slider is missing.");
-  }
   testingLibrary.fireEvent.change(lengthSlider, {
     target: { value: String(DEFAULT_CONFIGURATION.length + 1) },
   });

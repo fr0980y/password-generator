@@ -39,6 +39,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   DEFAULT_CONFIGURATION,
+  STANDARD_MAX_PASSWORD_LENGTH,
 } from "../features/password-generator/password-generator.constants";
 import { generatePassword } from "../features/password-generator/password-generator";
 import type {
@@ -248,6 +249,13 @@ export function usePasswordGenerator(): UsePasswordGeneratorResult {
   const onConfigurationChange = useCallback(
     (nextConfiguration: PasswordConfiguration) => {
       const nextState = { ...nextConfiguration };
+      if (
+        configuration.enableExtendedPasswordLengths &&
+        !nextState.enableExtendedPasswordLengths &&
+        nextState.length > STANDARD_MAX_PASSWORD_LENGTH
+      ) {
+        nextState.length = STANDARD_MAX_PASSWORD_LENGTH;
+      }
       setConfiguration(nextState);
 
       const validation = validatePasswordConfiguration(nextState);
@@ -261,7 +269,7 @@ export function usePasswordGenerator(): UsePasswordGeneratorResult {
         setSettingsWarning(SETTINGS_WARNING_MESSAGE);
       }
     },
-    [],
+    [configuration],
   );
 
   /**

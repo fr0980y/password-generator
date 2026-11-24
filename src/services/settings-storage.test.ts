@@ -103,13 +103,14 @@ test("returns fresh defaults when saved settings are missing", () => {
 test("loads valid saved settings", () => {
   const storage = new MockStorage();
   const saved = configuration({
-    length: 32,
+    length: 72,
     uppercase: false,
     lowercase: true,
     numbers: true,
     symbols: false,
     excludeAmbiguous: true,
     requireEachCategory: false,
+    enableExtendedPasswordLengths: true,
   });
   storage.values.set(
     SETTINGS_STORAGE_KEY,
@@ -124,7 +125,10 @@ test("loads valid saved settings", () => {
 
 test("saves a valid configuration to the named key in the versioned format", () => {
   const storage = new MockStorage();
-  const saved = configuration({ length: 24 });
+  const saved = configuration({
+    length: 46,
+    enableExtendedPasswordLengths: true,
+  });
 
   assert.equal(saveSettings(saved, storage), true);
   assert.equal(storage.values.has(SETTINGS_STORAGE_KEY), true);
@@ -137,7 +141,7 @@ test("saves a valid configuration to the named key in the versioned format", () 
   );
 });
 
-test("persists only the seven supported configuration properties", () => {
+test("persists only the eight supported configuration properties", () => {
   const storage = new MockStorage();
   const settingsWithExtraState = {
     ...configuration(),
@@ -154,13 +158,14 @@ test("persists only the seven supported configuration properties", () => {
   assert.deepEqual(
     Object.keys(parsed.settings as Record<string, unknown>).sort(),
     [
-    "excludeAmbiguous",
-    "length",
-    "lowercase",
-    "numbers",
-    "requireEachCategory",
-    "symbols",
-    "uppercase",
+      "enableExtendedPasswordLengths",
+      "excludeAmbiguous",
+      "length",
+      "lowercase",
+      "numbers",
+      "requireEachCategory",
+      "symbols",
+      "uppercase",
     ],
   );
   assert.doesNotMatch(
@@ -315,6 +320,19 @@ test("falls back for unsupported storage versions", () => {
   const result = loadSettings(storage);
   assert.equal(result.persistenceAvailable, true);
   assert.deepEqual(result.configuration, DEFAULT_CONFIGURATION);
+});
+
+test("does not migrate the previous settings schema", () => {
+  const storage = new MockStorage();
+  storage.values.set(
+    SETTINGS_STORAGE_KEY,
+    JSON.stringify({
+      version: SETTINGS_STORAGE_VERSION - 1,
+      settings: DEFAULT_CONFIGURATION,
+    }),
+  );
+
+  assert.deepEqual(loadSettings(storage).configuration, DEFAULT_CONFIGURATION);
 });
 
 test("ignores unknown properties in stored settings", () => {

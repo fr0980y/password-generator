@@ -9,6 +9,7 @@ export interface PasswordConfiguration {
   symbols: boolean;
   excludeAmbiguous: boolean;
   requireEachCategory: boolean;
+  enableExtendedPasswordLengths: boolean;
 }
 
 /**

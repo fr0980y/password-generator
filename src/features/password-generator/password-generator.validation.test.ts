@@ -29,13 +29,23 @@ test("exports the approved default configuration", () => {
     symbols: true,
     excludeAmbiguous: false,
     requireEachCategory: true,
+    enableExtendedPasswordLengths: false,
   });
 });
 
 test("accepts valid configurations", () => {
   assert.equal(validatePasswordConfiguration(configuration()).isValid, true);
   assert.equal(validatePasswordConfiguration(configuration({ length: 8 })).isValid, true);
-  assert.equal(validatePasswordConfiguration(configuration({ length: 128 })).isValid, true);
+  assert.equal(
+    validatePasswordConfiguration(configuration({ length: 40 })).isValid,
+    true,
+  );
+  assert.equal(
+    validatePasswordConfiguration(
+      configuration({ length: 128, enableExtendedPasswordLengths: true }),
+    ).isValid,
+    true,
+  );
   assert.equal(
     validatePasswordConfiguration(
       configuration({
@@ -50,9 +60,15 @@ test("accepts valid configurations", () => {
   );
 });
 
-test("rejects lengths below and above the approved range", () => {
+test("enforces the standard and extended password length limits", () => {
   assert.equal(validatePasswordConfiguration(configuration({ length: 7 })).isValid, false);
-  assert.equal(validatePasswordConfiguration(configuration({ length: 129 })).isValid, false);
+  assert.equal(validatePasswordConfiguration(configuration({ length: 41 })).isValid, false);
+  assert.equal(
+    validatePasswordConfiguration(
+      configuration({ length: 129, enableExtendedPasswordLengths: true }),
+    ).isValid,
+    false,
+  );
   assert.equal(
     validatePasswordConfiguration(
       configuration({ length: Number.NaN }),
@@ -62,17 +78,20 @@ test("rejects lengths below and above the approved range", () => {
 });
 
 test("rejects configurations with no enabled categories", () => {
-  const result = validatePasswordConfiguration(
-    configuration({
-      uppercase: false,
-      lowercase: false,
-      numbers: false,
-      symbols: false,
-    }),
-  );
+  for (const enableExtendedPasswordLengths of [false, true]) {
+    const result = validatePasswordConfiguration(
+      configuration({
+        uppercase: false,
+        lowercase: false,
+        numbers: false,
+        symbols: false,
+        enableExtendedPasswordLengths,
+      }),
+    );
 
-  assert.equal(result.isValid, false);
-  assert.ok(result.errors.includes("Select at least one character category."));
+    assert.equal(result.isValid, false);
+    assert.ok(result.errors.includes("Select at least one character category."));
+  }
 });
 
 test("rejects invalid category value types", () => {
@@ -85,6 +104,16 @@ test("rejects invalid category value types", () => {
   assert.ok(
     result.errors.includes("Character category selections must be boolean values."),
   );
+});
+
+test("rejects a non-boolean extended-length setting", () => {
+  const result = validatePasswordConfiguration({
+    ...configuration(),
+    enableExtendedPasswordLengths: "true",
+  } as unknown as PasswordConfiguration);
+
+  assert.equal(result.isValid, false);
+  assert.ok(result.errors.includes("Configuration options must be boolean values."));
 });
 
 test("rejects null configuration input", () => {
@@ -101,19 +130,22 @@ test("rejects undefined configuration input", () => {
   assert.deepEqual(result.errors, ["Password configuration is required."]);
 });
 
-test("accepts minimum length with all categories required", () => {
-  const result = validatePasswordConfiguration(
-    configuration({
-      length: 8,
-      uppercase: true,
-      lowercase: true,
-      numbers: true,
-      symbols: true,
-      requireEachCategory: true,
-    }),
-  );
+test("accepts minimum length with all categories required in both length modes", () => {
+  for (const enableExtendedPasswordLengths of [false, true]) {
+    const result = validatePasswordConfiguration(
+      configuration({
+        length: 8,
+        uppercase: true,
+        lowercase: true,
+        numbers: true,
+        symbols: true,
+        requireEachCategory: true,
+        enableExtendedPasswordLengths,
+      }),
+    );
 
-  assert.equal(result.isValid, true);
+    assert.equal(result.isValid, true);
+  }
 });
 
 test("does not apply category-count length validation when enforcement is disabled", () => {

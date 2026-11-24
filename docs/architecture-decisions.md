@@ -212,6 +212,9 @@ The settings are small, non-sensitive preferences that do not justify a database
 Use browser `localStorage` to persist password-generation preferences.
 
 Persist only the configuration object, using a versioned storage structure.
+The current schema is version 2 and includes `enableExtendedPasswordLengths`.
+The previous schema is unsupported and falls back to defaults; it is not
+migrated for this unreleased project.
 
 Do not persist:
 
@@ -386,7 +389,7 @@ No single testing framework provides the most appropriate coverage for all these
 
 The original proposal selected Vitest for unit and integration testing, React Testing Library for component behavior, and Playwright for end-to-end browser testing.
 
-Vitest was not adopted. Jest was considered as an alternative to Vitest, but neither is part of the current test infrastructure. Playwright remains planned and is not yet installed or configured.
+Vitest was not adopted. Jest was considered as an alternative to Vitest, but neither is part of the current test infrastructure. At the time this proposal was recorded, Playwright had not yet been installed or configured.
 
 ### Current Implementation
 
@@ -394,13 +397,13 @@ Use Node.js's built-in `node:test` runner and `node:assert` for the implemented 
 
 Use React Testing Library for React component and interaction tests, with jsdom to provide simulated DOM behavior. Browser APIs used in these tests are mocked or controlled; this setup does not replace real-browser testing.
 
-Playwright remains the planned tool for real-browser end-to-end testing, including workflows and browser behavior that Node and jsdom cannot verify.
+Playwright is installed as `@playwright/test` and configured for Chromium end-to-end tests against the production static export. Its implemented smoke test and application workflows cover browser behavior that Node and jsdom cannot verify; see the Test Plan for current coverage and remaining manual checks.
 
 ### Consequences
 
 - Core generation and service behavior can be tested without a browser.
 - React components and interactions can be tested in a simulated DOM.
-- Real-browser behavior is not covered until the planned Playwright setup is implemented.
+- Chromium real-browser behavior is covered by the implemented Playwright tests; cross-browser, offline, PWA, and other remaining acceptance checks are still manual.
 - Statistical tests may help identify implementation defects but do not establish cryptographic security.
 
 ---
