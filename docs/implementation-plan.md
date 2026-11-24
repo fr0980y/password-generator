@@ -512,8 +512,9 @@ maximum.
 
 #### Completion Criteria
 
-The new setting controls the slider maximum and validation limit, is restored
-from local preferences, and never causes generated passwords to be persisted.
+The new setting controls the numeric input maximum and validation limit, is
+restored from local preferences, and never causes generated passwords to be
+persisted.
 The existing Web Crypto generation algorithm and failure behavior remain
 unchanged.
 

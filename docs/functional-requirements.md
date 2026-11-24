@@ -179,8 +179,13 @@ The application shall provide a control for adjusting password length.
 **Acceptance criteria:**
 - The control supports values from 8 through 40 by default and 8 through 128 when extended lengths are enabled.
 - The default value is 20.
-- The slider maximum and helper text reflect the active maximum.
-- Values outside the permitted range cannot be applied.
+- Use one numeric input at all viewport sizes, with decrement and increment buttons immediately to its left and right.
+- Set the numeric input minimum to 8, its active maximum to 40 or 128, and its step to 1.
+- Allow temporary empty or incomplete editing without updating or persisting configuration.
+- Commit a valid integer on Enter or blur; restore the last valid configured value after empty, incomplete, or out-of-range input.
+- Each step button changes a valid draft by exactly one, or the configured value by one when the draft is invalid; disable the buttons at their respective bounds.
+- Use a numeric input mode on mobile and provide accessible names and keyboard access for both buttons.
+- Persist valid values through the existing settings mechanism; do not generate a password when length changes.
 
 ### FR-021 — Character Category Controls
 The application shall provide independent controls for each character category.
@@ -269,8 +274,8 @@ The application shall optionally allow password lengths above 40 characters.
 - The "Enable extended password lengths" option is unchecked by default.
 - Its helper text explains that it allows lengths above 40, up to 128 characters.
 - The minimum remains 8 characters in either mode.
-- Enabling extended lengths raises the slider maximum to 128 without changing the selected length.
-- Disabling extended lengths lowers the slider maximum to 40 and clamps any selected length above 40 to 40.
+- Enabling extended lengths raises the numeric input maximum to 128 without changing the selected length.
+- Disabling extended lengths lowers the numeric input maximum to 40 and clamps any selected length above 40 to 40.
 - Restoring defaults disables extended lengths and restores the length to 20.
 - The setting is persisted with the other password preferences.
 

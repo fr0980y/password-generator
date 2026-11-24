@@ -330,7 +330,8 @@ All primary configuration controls should be visible on the main screen.
 
 ### 8.1 Password Length
 
-Use a slider accompanied by a clearly visible numeric value.
+Use one numeric input at every viewport size, with a decrement button
+immediately to its left and an increment button immediately to its right.
 
 Requirements:
 
@@ -338,11 +339,20 @@ Requirements:
 - Standard maximum: 40.
 - Optional extended maximum: 128.
 - Default: 20.
-- Show the active maximum in both the slider range and helper text.
-- The current value must always be visible.
-- Users must be able to adjust the value precisely.
+- Set the input minimum, active maximum, and step to 8, 40 or 128, and 1.
+- Keep the active maximum in the helper text.
+- Allow the input to be temporarily empty while editing.
+- Commit a valid integer on Enter or blur; restore the last valid value after
+  empty, incomplete, or out-of-range input.
+- Do not persist incomplete or invalid values.
+- Each step button changes the current valid value by exactly one.
+- Disable decrement at the minimum and increment at the active maximum.
+- Use a numeric input mode on mobile and retain keyboard access and visible
+  focus for the input and both step buttons.
 
-The numeric value should update immediately as the slider changes.
+Editing the field does not update configuration until it is committed. A
+step-button activation applies its single step to a valid in-progress value or
+the current configured value when the draft is invalid.
 
 ### 8.2 Character Categories
 
@@ -389,7 +399,7 @@ Configuration changes should be saved automatically when possible.
 
 Provide an unchecked-by-default option labeled "Enable extended password lengths" with helper text: "Allow passwords longer than 40 characters, up to 128 characters."
 
-When enabled, the slider maximum is 128. When disabled, the maximum is 40; if the selected length exceeds 40 when disabled, reduce it to 40. The minimum remains 8 in either mode.
+When enabled, the numeric input maximum is 128. When disabled, the maximum is 40; if the selected length exceeds 40 when disabled, reduce it to 40. The minimum remains 8 in either mode.
 
 ### 8.7 Invalid Configuration
 
@@ -466,6 +476,8 @@ Restoring defaults must not regenerate or replace the currently displayed passwo
 Use a secondary button or unobtrusive text action near the configuration controls.
 
 It should not compete visually with Generate Password.
+Right-align the action within the configuration area and separate it from
+nearby controls. Preserve a touch target of at least 44px and keyboard access.
 
 A confirmation dialog is not necessary for this reversible action.
 

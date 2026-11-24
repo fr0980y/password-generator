@@ -204,7 +204,9 @@ async function readDisplayedPassword(page: Page): Promise<string> {
 async function readConfiguration(page: Page): Promise<PasswordConfiguration> {
   return {
     length: Number(
-      await page.getByRole("slider", { name: "Password Length" }).inputValue(),
+      await page
+        .getByRole("spinbutton", { name: "Password Length" })
+        .inputValue(),
     ),
     uppercase: await page
       .getByRole("checkbox", { name: "Uppercase letters" })
@@ -369,8 +371,15 @@ test("initializes with a valid password using browser Web Crypto", async ({
   await expect(
     page.getByRole("button", { name: "Generate Password" }),
   ).toHaveCount(1);
-  const lengthSlider = page.getByRole("slider", { name: "Password Length" });
-  await expect(lengthSlider).toHaveAttribute("max", "40");
+  const lengthInput = page.getByRole("spinbutton", {
+    name: "Password Length",
+  });
+  await expect(lengthInput).toHaveValue("20");
+  await expect(lengthInput).toHaveAttribute("type", "number");
+  await expect(lengthInput).toHaveAttribute("inputmode", "numeric");
+  await expect(lengthInput).toHaveAttribute("min", "8");
+  await expect(lengthInput).toHaveAttribute("max", "40");
+  await expect(lengthInput).toHaveAttribute("step", "1");
   await expect(
     page.getByRole("checkbox", { name: "Enable extended password lengths" }),
   ).not.toBeChecked();
@@ -396,10 +405,12 @@ test("configuration changes validate without regenerating and govern the next pa
   await openApplication(page);
 
   const originalPassword = await readDisplayedPassword(page);
-  const lengthSlider = page.getByRole("slider", { name: "Password Length" });
-  for (let step = 0; step < 4; step += 1) {
-    await lengthSlider.press("ArrowRight");
-  }
+  const lengthInput = page.getByRole("spinbutton", {
+    name: "Password Length",
+  });
+  await lengthInput.fill("24");
+  await lengthInput.press("Enter");
+  await expect(lengthInput).toHaveValue("24");
   await page
     .getByRole("checkbox", { name: "Uppercase letters" })
     .uncheck();
@@ -471,34 +482,159 @@ test("configuration changes validate without regenerating and govern the next pa
   ).toBe(true);
 });
 
-test("extended lengths update the slider maximum and disabling clamps to 40", async ({
+test("extended lengths update the numeric input maximum and disabling clamps to 40", async ({
   page,
 }) => {
   await openApplication(page);
 
-  const lengthSlider = page.getByRole("slider", { name: "Password Length" });
+  const lengthInput = page.getByRole("spinbutton", {
+    name: "Password Length",
+  });
   const extendedLengths = page.getByRole("checkbox", {
     name: "Enable extended password lengths",
   });
 
-  await expect(lengthSlider).toHaveAttribute("max", "40");
+  await expect(lengthInput).toHaveAttribute("max", "40");
   await extendedLengths.check();
-  await expect(lengthSlider).toHaveAttribute("max", "128");
-  await expect(lengthSlider).toHaveValue("20");
-
-  for (let step = 0; step < 21; step += 1) {
-    await lengthSlider.press("ArrowRight");
-  }
-  await expect(lengthSlider).toHaveValue("41");
+  await expect(lengthInput).toHaveAttribute("max", "128");
+  await lengthInput.fill("41");
+  await lengthInput.press("Enter");
+  await expect(lengthInput).toHaveValue("41");
 
   await extendedLengths.uncheck();
-  await expect(lengthSlider).toHaveAttribute("max", "40");
-  await expect(lengthSlider).toHaveValue("40");
+  await expect(lengthInput).toHaveAttribute("max", "40");
+  await expect(lengthInput).toHaveValue("40");
   await expect(page.getByText("8 to 40 characters")).toBeVisible();
 
   await page.getByRole("button", { name: "Restore Defaults" }).click();
   await expect(extendedLengths).not.toBeChecked();
-  await expect(lengthSlider).toHaveValue("20");
+  await expect(lengthInput).toHaveValue("20");
+});
+
+test("numeric length editing validates drafts, steps by one, persists valid changes, and does not generate", async ({
+  page,
+}) => {
+  await openApplication(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+
+  const lengthInput = page.getByRole("spinbutton", {
+    name: "Password Length",
+  });
+  const decrement = page.getByRole("button", {
+    name: "Decrease password length",
+  });
+  const increment = page.getByRole("button", {
+    name: "Increase password length",
+  });
+  const extendedLengths = page.getByRole("checkbox", {
+    name: "Enable extended password lengths",
+  });
+  const passwordBeforeChanges = await readDisplayedPassword(page);
+  const callsBeforeChanges = await readWebCryptoCallCount(page);
+
+  await expect(lengthInput).toBeVisible();
+  await expect(lengthInput).toHaveValue("20");
+  await expect(decrement).toBeVisible();
+  await expect(increment).toBeVisible();
+  await expect(lengthInput).toHaveAttribute("min", "8");
+  await expect(lengthInput).toHaveAttribute("max", "40");
+  await expect(lengthInput).toHaveAttribute("step", "1");
+  const decrementBox = await decrement.boundingBox();
+  const incrementBox = await increment.boundingBox();
+  expect(decrementBox).not.toBeNull();
+  expect(incrementBox).not.toBeNull();
+  expect(decrementBox!.width).toBeGreaterThanOrEqual(44);
+  expect(decrementBox!.height).toBeGreaterThanOrEqual(44);
+  expect(incrementBox!.width).toBeGreaterThanOrEqual(44);
+  expect(incrementBox!.height).toBeGreaterThanOrEqual(44);
+
+  await lengthInput.fill("9");
+  await expect(lengthInput).toHaveValue("9");
+  expect(
+    await page.evaluate(() =>
+      localStorage.getItem("password-generator.settings"),
+    ),
+  ).toBeNull();
+  await extendedLengths.check();
+  await expect(lengthInput).toHaveAttribute("max", "128");
+  await expect(lengthInput).toHaveValue("9");
+  let configuration = await readConfiguration(page);
+  expect(configuration.length).toBe(9);
+  expect(configuration.enableExtendedPasswordLengths).toBe(true);
+  expect(
+    await localStorageContainsOnlyPreferences(page, configuration),
+  ).toBe(true);
+
+  await lengthInput.fill("31");
+  await lengthInput.press("Enter");
+  await expect(lengthInput).toHaveValue("31");
+  configuration = await readConfiguration(page);
+  expect(
+    await localStorageContainsOnlyPreferences(page, configuration),
+  ).toBe(true);
+
+  await lengthInput.fill("");
+  await expect(lengthInput).toHaveValue("");
+  expect(
+    await localStorageContainsOnlyPreferences(page, configuration),
+  ).toBe(true);
+  await page.getByRole("checkbox", { name: "Uppercase letters" }).click();
+  await expect(lengthInput).toHaveValue("31");
+  configuration = await readConfiguration(page);
+  expect(configuration.length).toBe(31);
+  expect(configuration.uppercase).toBe(false);
+
+  await lengthInput.fill("7");
+  await expect(lengthInput).toHaveAttribute("aria-invalid", "true");
+  await lengthInput.press("Enter");
+  await expect(lengthInput).toHaveValue("31");
+  await lengthInput.fill("129");
+  await lengthInput.press("Enter");
+  await expect(lengthInput).toHaveValue("31");
+
+  await lengthInput.fill("32");
+  await increment.click();
+  await expect(lengthInput).toHaveValue("33");
+  await decrement.click();
+  await expect(lengthInput).toHaveValue("32");
+  await increment.focus();
+  await increment.press("Enter");
+  await expect(lengthInput).toHaveValue("33");
+  await decrement.focus();
+  await decrement.press("Space");
+  await expect(lengthInput).toHaveValue("32");
+
+  await lengthInput.fill("8");
+  await lengthInput.press("Enter");
+  await expect(decrement).toBeDisabled();
+  await expect(increment).toBeEnabled();
+  await lengthInput.fill("40");
+  await lengthInput.press("Enter");
+  await extendedLengths.uncheck();
+  await expect(lengthInput).toHaveAttribute("max", "40");
+  await expect(lengthInput).toHaveValue("40");
+  await expect(increment).toBeDisabled();
+
+  await extendedLengths.check();
+  await expect(lengthInput).toHaveAttribute("max", "128");
+  await lengthInput.fill("128");
+  await lengthInput.press("Enter");
+  await expect(lengthInput).toHaveValue("128");
+  await expect(increment).toBeDisabled();
+  await lengthInput.focus();
+  await extendedLengths.uncheck();
+  await expect(lengthInput).toHaveAttribute("max", "40");
+  await expect(lengthInput).toHaveValue("40");
+  await expect(increment).toBeDisabled();
+
+  const clampedConfiguration = await readConfiguration(page);
+  expect(clampedConfiguration.length).toBe(40);
+  expect(clampedConfiguration.enableExtendedPasswordLengths).toBe(false);
+  expect(
+    await localStorageContainsOnlyPreferences(page, clampedConfiguration),
+  ).toBe(true);
+  expect(await readDisplayedPassword(page) === passwordBeforeChanges).toBe(true);
+  expect(await readWebCryptoCallCount(page)).toBe(callsBeforeChanges);
 });
 
 test("password actions use the responsive layouts inside the password card", async ({
@@ -513,8 +649,20 @@ test("password actions use the responsive layouts inside the password card", asy
   const copyButton = passwordRegion.getByRole("button", {
     name: "Copy password",
   });
+  const lengthInput = page.getByRole("spinbutton", {
+    name: "Password Length",
+  });
+  const decrementButton = page.getByRole("button", {
+    name: "Decrease password length",
+  });
+  const incrementButton = page.getByRole("button", {
+    name: "Increase password length",
+  });
 
   await page.setViewportSize({ width: 390, height: 844 });
+  await expect(lengthInput).toBeVisible();
+  await expect(decrementButton).toBeVisible();
+  await expect(incrementButton).toBeVisible();
   const narrowGenerateBox = await generateButton.boundingBox();
   const narrowCopyBox = await copyButton.boundingBox();
   expect(narrowGenerateBox).not.toBeNull();
@@ -523,6 +671,9 @@ test("password actions use the responsive layouts inside the password card", asy
   expect(narrowGenerateBox!.width).toBeCloseTo(narrowCopyBox!.width, 0);
 
   await page.setViewportSize({ width: 640, height: 900 });
+  await expect(lengthInput).toBeVisible();
+  await expect(decrementButton).toBeVisible();
+  await expect(incrementButton).toBeVisible();
   const intermediateGenerateBox = await generateButton.boundingBox();
   const intermediateCopyBox = await copyButton.boundingBox();
   expect(intermediateGenerateBox).not.toBeNull();
@@ -534,12 +685,64 @@ test("password actions use the responsive layouts inside the password card", asy
   );
 
   await page.setViewportSize({ width: 1024, height: 900 });
+  await expect(lengthInput).toBeVisible();
+  await expect(decrementButton).toBeVisible();
+  await expect(incrementButton).toBeVisible();
   const wideGenerateBox = await generateButton.boundingBox();
   const wideCopyBox = await copyButton.boundingBox();
   expect(wideGenerateBox).not.toBeNull();
   expect(wideCopyBox).not.toBeNull();
   expect(wideGenerateBox!.y).toBe(wideCopyBox!.y);
   expect(wideGenerateBox!.width / wideCopyBox!.width).toBeCloseTo(2, 1);
+});
+
+test("Restore Defaults is right-aligned, keyboard accessible, and preserves the password", async ({
+  page,
+}) => {
+  await openApplication(page);
+
+  const configurationRegion = page.getByRole("region", {
+    name: "Password Configuration",
+  });
+  const restoreButton = page.getByRole("button", { name: "Restore Defaults" });
+  const configurationArea = restoreButton.locator("xpath=..");
+  const extendedLengths = page.getByRole("checkbox", {
+    name: "Enable extended password lengths",
+  });
+  const lengthInput = page.getByRole("spinbutton", {
+    name: "Password Length",
+  });
+
+  await extendedLengths.check();
+  await lengthInput.fill("21");
+  await lengthInput.press("Enter");
+  const passwordBeforeRestore = await readDisplayedPassword(page);
+  const callsBeforeRestore = await readWebCryptoCallCount(page);
+  const buttonBox = await restoreButton.boundingBox();
+  const configurationBox = await configurationArea.boundingBox();
+
+  expect(buttonBox).not.toBeNull();
+  expect(configurationBox).not.toBeNull();
+  expect(buttonBox!.height).toBeGreaterThanOrEqual(44);
+  expect(
+    Math.abs(
+      buttonBox!.x +
+        buttonBox!.width -
+        configurationBox!.x -
+        configurationBox!.width,
+    ),
+  ).toBeLessThanOrEqual(1);
+  expect(await configurationRegion.isVisible()).toBe(true);
+
+  await restoreButton.focus();
+  await restoreButton.press("Enter");
+  await expect(extendedLengths).not.toBeChecked();
+  await expect(lengthInput).toHaveValue("20");
+  expect(
+    await localStorageContainsOnlyPreferences(page, DEFAULT_CONFIGURATION),
+  ).toBe(true);
+  expect(await readDisplayedPassword(page) === passwordBeforeRestore).toBe(true);
+  expect(await readWebCryptoCallCount(page)).toBe(callsBeforeRestore);
 });
 
 /**
@@ -600,16 +803,17 @@ test("restores preferences after reload without restoring a password", async ({
 }) => {
   await openApplication(page);
 
-  const lengthSlider = page.getByRole("slider", { name: "Password Length" });
+  const lengthInput = page.getByRole("spinbutton", {
+    name: "Password Length",
+  });
   const extendedLengths = page.getByRole("checkbox", {
     name: "Enable extended password lengths",
   });
   await extendedLengths.check();
-  await expect(lengthSlider).toHaveAttribute("max", "128");
+  await expect(lengthInput).toHaveAttribute("max", "128");
   await expect(page.getByText("8 to 128 characters")).toBeVisible();
-  for (let step = 0; step < 26; step += 1) {
-    await lengthSlider.press("ArrowRight");
-  }
+  await lengthInput.fill("46");
+  await lengthInput.press("Enter");
   await page.getByRole("checkbox", { name: "Symbols" }).uncheck();
   await page
     .getByRole("checkbox", { name: "Exclude Ambiguous Characters" })
@@ -628,8 +832,8 @@ test("restores preferences after reload without restoring a password", async ({
 
   const callsBeforeReload = await readWebCryptoCallCount(page);
   await page.reload();
-  await expect(lengthSlider).toHaveValue("46");
-  await expect(lengthSlider).toHaveAttribute("max", "128");
+  await expect(lengthInput).toHaveValue("46");
+  await expect(lengthInput).toHaveAttribute("max", "128");
   await expect(extendedLengths).toBeChecked();
   await expect(page.getByRole("checkbox", { name: "Symbols" })).not.toBeChecked();
   await expect(

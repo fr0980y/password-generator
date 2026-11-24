@@ -578,6 +578,11 @@ Configuration changes immediately update application state and trigger a persist
 
 Changing configuration does not automatically generate a new password.
 
+The password-length input keeps an uncommitted editing string separate from the
+validated configuration. It commits an in-range integer on Enter or blur and
+restores the configured value for empty or invalid input. Its adjacent step
+buttons apply a single bounded change through the same configuration callback.
+
 The currently displayed password remains unchanged until the user explicitly requests generation.
 
 ## 9. Settings Persistence Architecture
@@ -890,7 +895,7 @@ Playwright runs Chromium against the production static export served from `out/`
 
 The local static server reads the generated `out/_headers` file and applies its Cloudflare Pages path rules to root, HTML, asset, and 404 responses. This makes local HTTP tests exercise the same header values and CSP as deployment. Local HTTP cannot demonstrate HSTS browser enforcement; only the response header is asserted locally. Deployed HTTPS/HSTS behavior and Cloudflare preview behavior require a separate preview check.
 
-The browser suite does not yet cover clipboard-denial behavior, service-worker lifecycle, offline operation, responsive layouts, or other browser engines. Install Chromium with `npx playwright install chromium`.
+The browser suite covers responsive button layouts and the numeric password-length input at mobile, intermediate, and desktop widths. It does not yet cover clipboard-denial behavior, service-worker lifecycle, offline operation, or other browser engines. Install Chromium with `npx playwright install chromium`.
 
 ### 14.5 Security Testing Priorities
 

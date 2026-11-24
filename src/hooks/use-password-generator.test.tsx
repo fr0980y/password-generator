@@ -31,6 +31,7 @@ import { DEFAULT_CONFIGURATION } from "../features/password-generator/password-g
 import type { PasswordConfiguration as PasswordConfigurationType } from "../features/password-generator/password-generator.types";
 import Home from "../app/page";
 import {
+  loadSettings,
   SETTINGS_STORAGE_KEY,
   SETTINGS_STORAGE_VERSION,
   type StorageLike,
@@ -172,6 +173,11 @@ class TestStorage implements StorageLike {
   removeItem(key: string): void {
     this.values.delete(key);
   }
+}
+
+/** Reads the current validated password length from the test storage adapter. */
+function loadLengthFromTestStorage(): number {
+  return loadSettings(storage).configuration.length;
 }
 
 /**
@@ -1370,40 +1376,123 @@ test("page supports keyboard workflow, action guards, and accessible feedback", 
   const extendedLengthsControl = testingLibrary.screen.getByRole("checkbox", {
     name: /^Enable extended password lengths/,
   });
-  const lengthSliderControl = testingLibrary.screen.getByRole("slider", {
+  const lengthInputControl = testingLibrary.screen.getByRole("spinbutton", {
     name: "Password Length",
+  });
+  const decrementButton = testingLibrary.screen.getByRole("button", {
+    name: "Decrease password length",
+  });
+  const incrementButton = testingLibrary.screen.getByRole("button", {
+    name: "Increase password length",
   });
   if (
     !(extendedLengthsControl instanceof dom.window.HTMLInputElement) ||
-    !(lengthSliderControl instanceof dom.window.HTMLInputElement)
+    !(lengthInputControl instanceof dom.window.HTMLInputElement) ||
+    !(decrementButton instanceof dom.window.HTMLButtonElement) ||
+    !(incrementButton instanceof dom.window.HTMLButtonElement)
   ) {
-    throw new Error("The extended-length checkbox or length slider is missing.");
+    throw new Error("The extended-length checkbox or numeric input is missing.");
   }
   const extendedLengths = extendedLengthsControl;
-  const lengthSlider = lengthSliderControl;
+  const lengthInput = lengthInputControl;
+  const initialPassword = displayedPasswordText();
+  const randomCallsBeforeLengthChanges = randomControl.calls;
+
   assert.equal(extendedLengths.checked, false);
-  assert.equal(lengthSlider.max, "40");
+  assert.equal(lengthInput.type, "number");
+  assert.equal(lengthInput.inputMode, "numeric");
+  assert.equal(lengthInput.min, "8");
+  assert.equal(lengthInput.max, "40");
+  assert.equal(lengthInput.step, "1");
+  assert.equal(lengthInput.value, "20");
   assert.ok(testingLibrary.screen.getByText("8 to 40 characters"));
 
-  await user.click(extendedLengths);
-  assert.equal(lengthSlider.max, "128");
-  assert.equal(lengthSlider.value, "20");
-  testingLibrary.fireEvent.change(lengthSlider, { target: { value: "41" } });
-  assert.equal(lengthSlider.value, "41");
-  await user.click(extendedLengths);
-  assert.equal(lengthSlider.max, "40");
-  assert.equal(lengthSlider.value, "40");
+  await user.clear(lengthInput);
+  assert.equal(lengthInput.value, "");
+  assert.equal(storage.values.has(SETTINGS_STORAGE_KEY), false);
+  await user.type(lengthInput, "9");
+  testingLibrary.fireEvent.blur(lengthInput);
+  assert.equal(lengthInput.value, "9");
+  assert.equal(loadLengthFromTestStorage(), 9);
+
+  await user.clear(lengthInput);
+  await user.type(lengthInput, "31");
+  await user.keyboard("{Enter}");
+  assert.equal(lengthInput.value, "31");
+  assert.equal(loadLengthFromTestStorage(), 31);
+
+  await user.clear(lengthInput);
+  assert.equal(lengthInput.value, "");
+  assert.equal(loadLengthFromTestStorage(), 31);
+  testingLibrary.fireEvent.blur(lengthInput);
+  assert.equal(lengthInput.value, "31");
+
+  await user.clear(lengthInput);
+  await user.type(lengthInput, "7");
+  assert.equal(lengthInput.getAttribute("aria-invalid"), "true");
+  await user.keyboard("{Enter}");
+  assert.equal(lengthInput.value, "31");
+  assert.equal(loadLengthFromTestStorage(), 31);
+
+  await user.clear(lengthInput);
+  await user.type(lengthInput, "41");
+  await user.keyboard("{Enter}");
+  assert.equal(lengthInput.value, "31");
+  assert.equal(loadLengthFromTestStorage(), 31);
+
+  await user.clear(lengthInput);
+  await user.type(lengthInput, "32");
+  await user.click(incrementButton);
+  assert.equal(lengthInput.value, "33");
+  await user.click(decrementButton);
+  assert.equal(lengthInput.value, "32");
+  incrementButton.focus();
+  await user.keyboard("{Enter}");
+  assert.equal(lengthInput.value, "33");
+  decrementButton.focus();
+  await user.keyboard(" ");
+  assert.equal(lengthInput.value, "32");
+
+  await user.clear(lengthInput);
+  await user.type(lengthInput, "8");
+  await user.keyboard("{Enter}");
+  assert.equal(decrementButton.disabled, true);
+  assert.equal(incrementButton.disabled, false);
+
+  await user.clear(lengthInput);
+  await user.type(lengthInput, "40");
+  await user.keyboard("{Enter}");
+  assert.equal(incrementButton.disabled, true);
 
   await user.click(extendedLengths);
-  assert.equal(lengthSlider.max, "128");
-  testingLibrary.fireEvent.change(lengthSlider, { target: { value: "41" } });
+  assert.equal(lengthInput.max, "128");
+  assert.ok(testingLibrary.screen.getByText("8 to 128 characters"));
+  await user.clear(lengthInput);
+  await user.type(lengthInput, "128");
+  await user.keyboard("{Enter}");
+  assert.equal(lengthInput.value, "128");
+  assert.equal(incrementButton.disabled, true);
+  assert.equal(decrementButton.disabled, false);
+
+  lengthInput.focus();
+  await user.click(extendedLengths);
+  assert.equal(extendedLengths.checked, false);
+  assert.equal(lengthInput.max, "40");
+  assert.equal(lengthInput.value, "40");
+
+  const lengthBeforeRestore = lengthInput.value;
+  assert.equal(loadLengthFromTestStorage(), Number(lengthBeforeRestore));
+  assert.equal(randomControl.calls, randomCallsBeforeLengthChanges);
+  assert.ok(
+    displayedPasswordText() === initialPassword,
+    "Changing password length replaced the displayed password.",
+  );
+
   await user.click(requireButton("Restore Defaults"));
   assert.equal(extendedLengths.checked, false);
-  assert.equal(lengthSlider.max, "40");
-  assert.equal(lengthSlider.value, "20");
-
-  const initialPassword = displayedPasswordText();
-  assert.ok(initialPassword.length === DEFAULT_CONFIGURATION.length);
+  assert.equal(lengthInput.max, "40");
+  assert.equal(lengthInput.value, "20");
+  assert.equal(loadLengthFromTestStorage(), DEFAULT_CONFIGURATION.length);
 
   const feedbackRegion = dom.window.document.querySelector(
     '[aria-label="Application feedback"]',
@@ -1411,10 +1500,10 @@ test("page supports keyboard workflow, action guards, and accessible feedback", 
   assert.ok(feedbackRegion, "The application feedback region is missing.");
   assert.equal(feedbackRegion.getAttribute("aria-live"), "polite");
 
-  testingLibrary.fireEvent.change(lengthSlider, {
-    target: { value: String(DEFAULT_CONFIGURATION.length + 1) },
-  });
-  assert.equal(lengthSlider.value, String(DEFAULT_CONFIGURATION.length + 1));
+  await user.clear(lengthInput);
+  await user.type(lengthInput, String(DEFAULT_CONFIGURATION.length + 1));
+  testingLibrary.fireEvent.blur(lengthInput);
+  assert.equal(lengthInput.value, String(DEFAULT_CONFIGURATION.length + 1));
   assert.ok(
     displayedPasswordText() === initialPassword,
     "Changing configuration replaced the displayed password.",
@@ -1528,9 +1617,9 @@ test("page supports keyboard workflow, action guards, and accessible feedback", 
   );
 
   storage.failWrites = true;
-  testingLibrary.fireEvent.change(lengthSlider, {
-    target: { value: String(DEFAULT_CONFIGURATION.length + 2) },
-  });
+  await user.clear(lengthInput);
+  await user.type(lengthInput, String(DEFAULT_CONFIGURATION.length + 2));
+  await user.keyboard("{Enter}");
   assert.ok(
     testingLibrary.screen.queryByText(
       "Settings won't be saved on this device. Your current settings will remain active until you close or reload the application.",

@@ -98,7 +98,7 @@ This passing result describes the current Node.js test run, not completion of ev
 
 ### 3.2 Playwright Smoke Test and Implemented Browser Workflows
 
-Playwright is configured to run against the production export in `out/`. The Chromium suite contains the infrastructure smoke test and application workflows in `tests/e2e/application-workflows.spec.ts`. The workflows verify the initial generated password and configuration, in-card actions, slider maximum and clamp behavior for optional extended lengths, responsive button layouts at mobile/intermediate/desktop widths, explicit generation and validation recovery, clipboard writes and timed success feedback, and preferences-only localStorage persistence with an extended-length preference and a length above 40 restored after reload. The tests use real browser APIs, isolate state using Playwright's per-test browser contexts, and do not log generated passwords.
+Playwright is configured to run against the production export in `out/`. The Chromium suite contains the infrastructure smoke test and application workflows in `tests/e2e/application-workflows.spec.ts`. The workflows verify the initial generated password and configuration, in-card actions, numeric password-length editing and clamp behavior for optional extended lengths, responsive button layouts and a consistent length input at mobile/intermediate/desktop widths, explicit generation and validation recovery, clipboard writes and timed success feedback, and preferences-only localStorage persistence with an extended-length preference and a length above 40 restored after reload. The tests use real browser APIs, isolate state using Playwright's per-test browser contexts, and do not log generated passwords.
 
 The build generates `out/_headers`, and Node.js tests verify inline-script
 hash extraction and policy generation. The local static server applies this
@@ -271,8 +271,15 @@ Verify:
 Verify:
 
 - The password length control displays its current value.
-- The slider maximum and helper text show 40 by default and 128 when extended lengths are enabled.
+- The same numeric input and adjacent decrement/increment buttons are visible at mobile, intermediate, and desktop widths.
+- The input starts at 20, has minimum 8, step 1, and maximum 40 by default or 128 when extended lengths are enabled; helper text reflects the active maximum.
+- Single-digit and multi-digit valid values commit on Enter or blur and persist through localStorage.
+- Empty, incomplete, and out-of-range values remain temporary while editing and restore the last valid value on commit.
+- Each button changes the valid draft or configured length by exactly one, has an accessible name, and is keyboard accessible.
+- Decrement and increment are disabled at the minimum and active maximum in both standard and extended modes.
 - Disabling extended lengths while the current length exceeds 40 clamps it to 40.
+- Disabling extended lengths while editing a length of 128 clamps the input and configuration to 40.
+- Length changes persist in localStorage and do not generate or replace a password.
 - Restore Defaults disables extended lengths and restores length 20.
 - Changing length updates configuration.
 - Each character-category checkbox updates independently.
@@ -310,6 +317,8 @@ Verify:
 
 - All configuration settings return to their defaults.
 - Restored settings are persisted when possible.
+- Restore Defaults is right-aligned within the configuration area, separated from nearby controls, and retains a touch target of at least 44px.
+- Restore Defaults can be activated using the keyboard.
 - The displayed password remains unchanged.
 - The user receives appropriate feedback.
 
@@ -375,7 +384,7 @@ End-to-end tests should verify complete workflows in a real browser environment.
 
 - [x] Open the application with no previously saved settings.
 - [x] Verify default settings are loaded.
-- [x] Verify extended lengths are disabled and the slider maximum is 40.
+- [x] Verify extended lengths are disabled and the active control maximum is 40.
 - [x] Verify Generate and Copy are inside the password card and no duplicate Generate action exists.
 - [x] Verify a password is generated automatically.
 - [x] Verify the password has the expected default length.
@@ -397,7 +406,7 @@ End-to-end tests should verify complete workflows in a real browser environment.
 - [x] Change password length.
 - [x] Change character categories.
 - [x] Change ambiguous-character exclusion.
-- [x] Enable extended lengths and verify the slider maximum changes to 128.
+- [x] Enable extended lengths and verify the active control maximum changes to 128.
 - [x] Disable extended lengths and verify the maximum changes to 40 and an over-limit length clamps to 40.
 - [ ] Change category enforcement.
 - [x] Verify the displayed password remains unchanged while settings are modified.
@@ -643,6 +652,7 @@ These are representative test dimensions, not exclusive supported sizes.
 Verify:
 
 - No unintended horizontal page scrolling.
+- The numeric password-length input and both adjustment buttons remain visible and usable.
 - Password text remains accessible.
 - Controls remain usable.
 - Layout spacing remains consistent.
